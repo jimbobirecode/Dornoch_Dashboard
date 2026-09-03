@@ -3,6 +3,8 @@ import os
 import psycopg
 from psycopg.rows import dict_row
 
+from club_config import pg_connect_kwargs
+
 
 def get_db_connection():
     """
@@ -17,7 +19,7 @@ def get_db_connection():
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
         raise ValueError("DATABASE_URL environment variable not set")
-    return psycopg.connect(database_url)
+    return psycopg.connect(database_url, **pg_connect_kwargs(database_url))
 
 
 def execute_query(query, params=None, fetch_one=False, fetch_all=True):

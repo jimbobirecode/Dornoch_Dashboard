@@ -181,6 +181,25 @@ def apply_brand_colors(html: str) -> str:
     return html
 
 
+def pg_connect_kwargs(database_url: str = None) -> Dict:
+    """
+    Extra psycopg.connect() options for hosted Postgres.
+
+    Supabase: connections must use SSL, and the *transaction* pooler
+    (port 6543) does not support server-side prepared statements, which
+    psycopg 3 switches on automatically - so disable them there. The direct
+    host and the session pooler (port 5432) work as-is.
+    """
+    url = database_url or os.getenv('DATABASE_URL', '') or ''
+    kwargs: Dict = {}
+    if 'supabase.co' in url or 'supabase.com' in url:
+        if 'sslmode=' not in url:
+            kwargs['sslmode'] = 'require'
+        if ':6543' in url:
+            kwargs['prepare_threshold'] = None
+    return kwargs
+
+
 def money(amount, decimals: int = 2) -> str:
     """money(1292) -> '£1,292.00' (or '$1,292.00' for Streamsong)."""
     try:
