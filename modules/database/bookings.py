@@ -29,7 +29,8 @@ def load_bookings_from_db(club_filter):
                 hotel_checkin, hotel_checkout, golf_courses, selected_tee_times,
                 lodging_nights, lodging_rooms, lodging_room_type,
                 lodging_preferences, lodging_cost,
-                resort_fee_per_person, resort_fee_total
+                resort_fee_per_person, resort_fee_total,
+                guest_name, contact_phone, caddie_requirements, special_requests, form_submitted_at
             FROM bookings
             WHERE club = %s
             ORDER BY timestamp DESC

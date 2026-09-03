@@ -1,20 +1,10 @@
 """Styling constants and CSS generation"""
 
-# Streamsong Brand Color Palette
-STREAMSONG_COLORS = {
-    'slate_blue': '#3d5266',
-    'florida_sky': '#87a7b3',
-    'rust_copper': '#a0653f',
-    'olive_green': '#6b7c3f',
-    'native_grass': '#8b9456',
-    'sunset_orange': '#cc8855',
-    'off_white': '#f7f5f2',
-    'sand_dune': '#d4b896',
-    'warm_grey': '#666666',
-    'background_dark': '#2a3a4a',
-    'card_gradient_start': '#3d5266',
-    'card_gradient_end': '#4a6278',
-}
+from club_config import COLORS as BRAND_COLORS
+
+# Active club palette (keys keep their historical Streamsong names so the
+# CSS below works unchanged; values come from club_config.py)
+STREAMSONG_COLORS = BRAND_COLORS
 
 
 def get_dashboard_css():

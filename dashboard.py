@@ -21,6 +21,22 @@ from modules.database import (
     fix_all_tee_times
 )
 from modules.ui import get_dashboard_css
+from club_config import (
+    PROFILE, CLUB_ID, CURRENCY, COLORS, DATE_FMT_LONG, DATE_FMT_MEDIUM, DATE_FMT_SHORT,
+    DATE_FMT_DAY, DATETIME_FMT, apply_brand_colors, money, now_local,
+)
+
+# Every HTML/CSS fragment below was written with the Streamsong palette. Route
+# st.markdown through apply_brand_colors() so the active club's colours are
+# used everywhere without touching hundreds of inline styles.
+_original_st_markdown = st.markdown
+
+
+def _branded_markdown(body, *args, **kwargs):
+    return _original_st_markdown(apply_brand_colors(body) if isinstance(body, str) else body, *args, **kwargs)
+
+
+st.markdown = _branded_markdown
 from modules.utils import (
     extract_tee_time_from_note,
     get_status_icon,
@@ -88,14 +104,14 @@ def logout():
 # STREAMLIT PAGE CONFIG
 # ========================================
 st.set_page_config(
-    page_title="Streamsong Booking Dashboard",
-    page_icon="assets/ssr-logo-notag.png",
+    page_title=PROFILE['page_title'],
+    page_icon=PROFILE['page_icon'],
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # ========================================
-# STYLING - STREAMSONG BRAND
+# STYLING - CLUB BRAND (see club_config.py)
 # ========================================
 st.markdown(get_dashboard_css(), unsafe_allow_html=True)
 
@@ -199,7 +215,7 @@ if not st.session_state.authenticated:
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
         st.markdown("<div class='login-logo-container'>", unsafe_allow_html=True)
-        st.image("assets/ssr-logo-notag.png", use_column_width=True)
+        st.image(PROFILE['logo_file_light'], use_column_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("""
@@ -251,7 +267,7 @@ if not st.session_state.authenticated:
 
 with st.sidebar:
     # Small logo in sidebar - stacked vertically
-    st.image("assets/ssr-logo-notag.png", use_column_width=True)
+    st.image(PROFILE['logo_file'], use_column_width=True)
     st.markdown("""
         <div style='text-align: center; margin-top: 0.5rem;'>
             <p style='color: #e8e3d9; font-size: 0.9rem; margin: 0; font-weight: 600; letter-spacing: 0.5px;'>Booking Dashboard</p>
@@ -261,7 +277,7 @@ with st.sidebar:
     st.markdown("<div style='height: 1px; background: #6b7c3f; margin: 1rem 0 1.5rem 0;'></div>", unsafe_allow_html=True)
 
     st.markdown(f"<div class='user-badge'>{st.session_state.full_name}</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='club-badge'>{st.session_state.customer_id.title()}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='club-badge'>{PROFILE['name'] if st.session_state.customer_id == CLUB_ID else st.session_state.customer_id.title()}</div>", unsafe_allow_html=True)
 
     st.markdown("<div style='height: 1px; background: #6b7c3f; margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
 
@@ -308,21 +324,21 @@ with st.sidebar:
 
     # Calculate date range based on preset
     if date_preset == "Today":
-        date_range = (datetime.now().date(), datetime.now().date())
+        date_range = (now_local().date(), now_local().date())
     elif date_preset == "Next 7 Days":
-        date_range = (datetime.now().date(), datetime.now().date() + timedelta(days=7))
+        date_range = (now_local().date(), now_local().date() + timedelta(days=7))
     elif date_preset == "Next 30 Days":
-        date_range = (datetime.now().date(), datetime.now().date() + timedelta(days=30))
+        date_range = (now_local().date(), now_local().date() + timedelta(days=30))
     elif date_preset == "Next 60 Days":
-        date_range = (datetime.now().date(), datetime.now().date() + timedelta(days=60))
+        date_range = (now_local().date(), now_local().date() + timedelta(days=60))
     elif date_preset == "Next 90 Days":
-        date_range = (datetime.now().date(), datetime.now().date() + timedelta(days=90))
+        date_range = (now_local().date(), now_local().date() + timedelta(days=90))
     elif date_preset == "All Upcoming":
-        date_range = (datetime.now().date(), datetime.now().date() + timedelta(days=365))
+        date_range = (now_local().date(), now_local().date() + timedelta(days=365))
     else:  # Custom
         date_range = st.date_input(
             "Custom Date Range",
-            value=(datetime.now().date(), datetime.now().date() + timedelta(days=30))
+            value=(now_local().date(), now_local().date() + timedelta(days=30))
         )
 
     # Status filter - if clicked from metric card, use that
@@ -352,8 +368,8 @@ with st.sidebar:
         st.cache_data.clear()
         st.rerun()
 
-st.markdown("""
-    <h1 style='margin-bottom: 1rem;'>Streamsong Dashboard</h1>
+st.markdown(f"""
+    <h1 style='margin-bottom: 1rem;'>{PROFILE['dashboard_title']}</h1>
 """, unsafe_allow_html=True)
 
 # Render page based on navigation selection
@@ -487,9 +503,9 @@ if page == "Bookings":
     # Format date range string
     if date_range:
         if isinstance(date_range, tuple) and len(date_range) == 2:
-            date_str = f"{date_range[0].strftime('%b %d')} to {date_range[1].strftime('%b %d, %Y')}"
+            date_str = f"{date_range[0].strftime(DATE_FMT_DAY)} to {date_range[1].strftime(DATE_FMT_SHORT)}"
         elif hasattr(date_range, '__len__') and len(date_range) == 2:
-            date_str = f"{date_range[0].strftime('%b %d')} to {date_range[1].strftime('%b %d, %Y')}"
+            date_str = f"{date_range[0].strftime(DATE_FMT_DAY)} to {date_range[1].strftime(DATE_FMT_SHORT)}"
         else:
             date_str = "all dates"
     else:
@@ -540,7 +556,7 @@ if page == "Bookings":
         progress_width = (current_index / (len(stages) - 1)) * 100 if len(stages) > 1 else 0
     
         # Format requested time
-        requested_time = booking['timestamp'].strftime('%b %d • %I:%M %p')
+        requested_time = booking['timestamp'].strftime(DATE_FMT_DAY + ' • %H:%M')
     
         with st.container():
             # Build progress bar HTML inline
@@ -581,12 +597,12 @@ if page == "Bookings":
                 lodging_cost = booking.get('lodging_cost')
 
                 if hotel_checkin and not pd.isna(hotel_checkin):
-                    checkin_str = hotel_checkin.strftime('%b %d')
+                    checkin_str = hotel_checkin.strftime(DATE_FMT_DAY)
                 else:
                     checkin_str = "TBD"
 
                 if hotel_checkout and not pd.isna(hotel_checkout):
-                    checkout_str = hotel_checkout.strftime('%b %d')
+                    checkout_str = hotel_checkout.strftime(DATE_FMT_DAY)
                 else:
                     checkout_str = "TBD"
 
@@ -612,7 +628,7 @@ if page == "Bookings":
 
                 # Lodging cost column
                 if lodging_cost and not pd.isna(lodging_cost) and float(lodging_cost) > 0:
-                    hotel_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>LODGING COST</div><div style='font-size: 1.25rem; font-weight: 700; color: #cc8855;'>${float(lodging_cost):,.2f}</div></div>")
+                    hotel_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>LODGING COST</div><div style='font-size: 1.25rem; font-weight: 700; color: #cc8855;'>{CURRENCY}{float(lodging_cost):,.2f}</div></div>")
 
                 # Build the grid
                 num_cols = len(hotel_cols)
@@ -627,6 +643,31 @@ if page == "Bookings":
                         prefs_section = f"<div style='margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid rgba(107, 124, 63, 0.2);'><div class='data-label' style='margin-bottom: 0.25rem;'>SPECIAL REQUESTS</div><div style='font-size: 0.85rem; color: #d4b896; line-height: 1.4;'>{prefs_text}</div></div>"
 
                     hotel_details_html = f"<div style='margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(107, 124, 63, 0.3);'><div style='color: #cc8855; font-weight: 700; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;'>🏨 LODGING</div>{hotel_grid}{prefs_section}</div>"
+
+            # Guest details captured by the hosted booking form
+            form_details_html = ""
+            _guest_name = booking.get('guest_name')
+            _phone = booking.get('contact_phone')
+            _caddies = booking.get('caddie_requirements')
+            _requests = booking.get('special_requests')
+            _has = lambda v: v is not None and not (isinstance(v, float) and pd.isna(v)) and str(v).strip() and str(v) != 'nan'
+            if any(_has(v) for v in (_guest_name, _phone, _caddies, _requests)):
+                form_cols = []
+                if _has(_guest_name):
+                    form_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>LEAD GUEST</div><div style='font-size: 0.95rem; font-weight: 600; color: #f7f5f2;'>{html.escape(str(_guest_name))}</div></div>")
+                if _has(_phone):
+                    form_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>PHONE</div><div style='font-size: 0.95rem; font-weight: 600; color: #f7f5f2;'><a href='tel:{html.escape(str(_phone))}' style='color: #f7f5f2; text-decoration: none;'>{html.escape(str(_phone))}</a></div></div>")
+                if _has(_caddies):
+                    form_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>CADDIES</div><div style='font-size: 0.9rem; font-weight: 600; color: #f7f5f2;'>{html.escape(str(_caddies))}</div></div>")
+                _submitted = booking.get('form_submitted_at')
+                if _submitted is not None and not pd.isna(_submitted) and hasattr(_submitted, 'strftime'):
+                    form_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>FORM SUBMITTED</div><div style='font-size: 0.9rem; font-weight: 600; color: #f7f5f2;'>{_submitted.strftime(DATETIME_FMT)}</div></div>")
+                form_grid = f"<div style='display: grid; grid-template-columns: repeat({len(form_cols)}, 1fr); gap: 1.5rem; margin-bottom: 0.5rem;'>{''.join(form_cols)}</div>"
+                requests_section = ""
+                if _has(_requests):
+                    requests_text = html.escape(str(_requests)).replace('\n', '<br>')
+                    requests_section = f"<div style='margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid rgba(107, 124, 63, 0.2);'><div class='data-label' style='margin-bottom: 0.25rem;'>GUEST REQUESTS</div><div style='font-size: 0.85rem; color: #d4b896; line-height: 1.4;'>{requests_text}</div></div>"
+                form_details_html = f"<div style='margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(107, 124, 63, 0.3);'><div style='color: #87a7b3; font-weight: 700; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;'>📝 GUEST DETAILS (BOOKING FORM)</div>{form_grid}{requests_section}</div>"
 
             # Parse and display selected_tee_times in the existing blue section
             selected_tee_times = booking.get('selected_tee_times', None)
@@ -651,7 +692,7 @@ if page == "Bookings":
 
                     for i, tee_time in enumerate(selected_tee_times):
                         # Extract data from each tee time entry
-                        round_date = tee_time.get('date', booking['date'].strftime('%b %d, %Y'))
+                        round_date = tee_time.get('date', booking['date'].strftime(DATE_FMT_SHORT))
                         round_time = tee_time.get('time', tee_time_display)
                         round_course = tee_time.get('course_name', '')
                         round_players = tee_time.get('players', booking['players'])
@@ -661,16 +702,16 @@ if page == "Bookings":
                         # Calculate cost display - multiply by number of players for group total
                         if round_cost_per_player is not None and round_cost_per_player > 0:
                             round_total = float(round_cost_per_player) * int(round_players)
-                            cost_display = f"${round_total:,.2f}"
+                            cost_display = f"{CURRENCY}{round_total:,.2f}"
                             total_golf_cost += round_total
                         elif len(selected_tee_times) == 1:
                             # Single round - use booking total
-                            cost_display = f"${float(booking['total']):,.2f}"
+                            cost_display = f"{CURRENCY}{float(booking['total']):,.2f}"
                             total_golf_cost = float(booking['total'])
                         else:
                             # Multi-round - divide total evenly
                             per_round = float(booking['total']) / len(selected_tee_times)
-                            cost_display = f"${per_round:,.2f}"
+                            cost_display = f"{CURRENCY}{per_round:,.2f}"
                             total_golf_cost += per_round
 
                         # Round header (only for multi-round bookings)
@@ -718,20 +759,20 @@ if page == "Bookings":
                         resort_fee_total = float(booking_resort_fee_total)
 
                     summary_cols = []
-                    summary_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>TOTAL GOLF COST</div><div style='font-size: 1.5rem; font-weight: 700; color: #6b7c3f;'>${total_golf_cost:,.2f}</div></div>")
+                    summary_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>TOTAL GOLF COST</div><div style='font-size: 1.5rem; font-weight: 700; color: #6b7c3f;'>{CURRENCY}{total_golf_cost:,.2f}</div></div>")
 
                     if lodging_cost and not pd.isna(lodging_cost) and float(lodging_cost) > 0:
-                        summary_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>TOTAL LODGING COST</div><div style='font-size: 1.5rem; font-weight: 700; color: #cc8855;'>${float(lodging_cost):,.2f}</div></div>")
+                        summary_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>TOTAL LODGING COST</div><div style='font-size: 1.5rem; font-weight: 700; color: #cc8855;'>{CURRENCY}{float(lodging_cost):,.2f}</div></div>")
                         grand_total = total_golf_cost + float(lodging_cost)
                     else:
                         grand_total = total_golf_cost
 
                     # Add resort fees to summary if applicable
                     if resort_fee_total > 0:
-                        summary_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>RESORT FEES</div><div style='font-size: 1.5rem; font-weight: 700; color: #87a7b3;'>${resort_fee_total:,.2f}</div></div>")
+                        summary_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>RESORT FEES</div><div style='font-size: 1.5rem; font-weight: 700; color: #87a7b3;'>{CURRENCY}{resort_fee_total:,.2f}</div></div>")
                         grand_total += resort_fee_total
 
-                    summary_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>GRAND TOTAL</div><div style='font-size: 1.75rem; font-weight: 700; color: #f7f5f2;'>${grand_total:,.2f}</div></div>")
+                    summary_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>GRAND TOTAL</div><div style='font-size: 1.75rem; font-weight: 700; color: #f7f5f2;'>{CURRENCY}{grand_total:,.2f}</div></div>")
 
                     summary_grid = f"repeat({len(summary_cols)}, 1fr)"
                     summary_html = f"<div style='margin-top: 1rem; padding-top: 1rem; border-top: 2px solid #6b7c3f;'><div style='display: grid; grid-template-columns: {summary_grid}; gap: 1.5rem;'>{''.join(summary_cols)}</div></div>"
@@ -740,16 +781,16 @@ if page == "Bookings":
 
                 except Exception as e:
                     # Fallback to basic display on any error
-                    tee_times_section_html = f"<div style='display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 1rem;'><div><div class='data-label' style='margin-bottom: 0.5rem;'>TEE DATE</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{booking['date'].strftime('%b %d, %Y')}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>TEE TIME</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{tee_time_display}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>PLAYERS</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{booking['players']}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>TOTAL</div><div style='font-size: 1.5rem; font-weight: 700; color: #6b7c3f;'>${float(booking['total']):,.2f}</div></div></div>"
+                    tee_times_section_html = f"<div style='display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 1rem;'><div><div class='data-label' style='margin-bottom: 0.5rem;'>TEE DATE</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{booking['date'].strftime(DATE_FMT_SHORT)}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>TEE TIME</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{tee_time_display}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>PLAYERS</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{booking['players']}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>TOTAL</div><div style='font-size: 1.5rem; font-weight: 700; color: #6b7c3f;'>{CURRENCY}{float(booking['total']):,.2f}</div></div></div>"
             else:
                 # Basic display for non-Requested status or no tee times data
-                tee_times_section_html = f"<div style='display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 1rem;'><div><div class='data-label' style='margin-bottom: 0.5rem;'>TEE DATE</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{booking['date'].strftime('%b %d, %Y')}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>TEE TIME</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{tee_time_display}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>PLAYERS</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{booking['players']}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>TOTAL</div><div style='font-size: 1.5rem; font-weight: 700; color: #6b7c3f;'>${booking['total']:,.2f}</div></div></div>"
+                tee_times_section_html = f"<div style='display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 1rem;'><div><div class='data-label' style='margin-bottom: 0.5rem;'>TEE DATE</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{booking['date'].strftime(DATE_FMT_SHORT)}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>TEE TIME</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{tee_time_display}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>PLAYERS</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{booking['players']}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>TOTAL</div><div style='font-size: 1.5rem; font-weight: 700; color: #6b7c3f;'>{CURRENCY}{booking['total']:,.2f}</div></div></div>"
 
             # Escape and format note content for display
             note_display = html.escape(note_content).replace('\n', '<br>')
 
             # Build complete card HTML (without notes - notes will be in expander below)
-            card_html = f"<div class='booking-card' style='background: linear-gradient(135deg, #3d5266 0%, #4a6278 100%); border: 2px solid #6b7c3f; border-radius: 12px; padding: 1.5rem; margin-bottom: 0.5rem; box-shadow: 0 4px 16px rgba(107, 124, 63, 0.3); transition: all 0.3s ease;'><div style='display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem;'><div style='flex: 1;'><div style='display: flex; align-items: center;'><div class='booking-id' style='margin-bottom: 0.5rem;'>{html.escape(str(booking['booking_id']))}</div>{hotel_badge}</div><div class='booking-email'>{html.escape(str(booking['guest_email']))}</div></div><div style='text-align: right;'><div class='timestamp'>REQUESTED</div><div class='timestamp-value'>{requested_time}</div></div></div><div style='margin-bottom: 1.5rem;'>{progress_html}</div><div style='height: 1px; background: linear-gradient(90deg, transparent, #6b7c3f, transparent); margin: 1.5rem 0;'></div>{tee_times_section_html}{hotel_details_html}</div>"
+            card_html = f"<div class='booking-card' style='background: linear-gradient(135deg, #3d5266 0%, #4a6278 100%); border: 2px solid #6b7c3f; border-radius: 12px; padding: 1.5rem; margin-bottom: 0.5rem; box-shadow: 0 4px 16px rgba(107, 124, 63, 0.3); transition: all 0.3s ease;'><div style='display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem;'><div style='flex: 1;'><div style='display: flex; align-items: center;'><div class='booking-id' style='margin-bottom: 0.5rem;'>{html.escape(str(booking['booking_id']))}</div>{hotel_badge}</div><div class='booking-email'>{html.escape(str(booking['guest_email']))}</div></div><div style='text-align: right;'><div class='timestamp'>REQUESTED</div><div class='timestamp-value'>{requested_time}</div></div></div><div style='margin-bottom: 1.5rem;'>{progress_html}</div><div style='height: 1px; background: linear-gradient(90deg, transparent, #6b7c3f, transparent); margin: 1.5rem 0;'></div>{tee_times_section_html}{form_details_html}{hotel_details_html}</div>"
 
             # Render the complete card
             st.markdown(card_html, unsafe_allow_html=True)
@@ -788,7 +829,7 @@ if page == "Bookings":
                     st.markdown(f"""
                         <div style='margin-top: 1rem; padding: 0.75rem; background: #3d5266; border-radius: 8px; border: 2px solid #6b7c3f;'>
                             <div style='color: #d4b896; font-size: 0.7rem; font-weight: 600; text-transform: uppercase;'>Last Updated</div>
-                            <div style='color: #f7f5f2; font-size: 0.875rem; margin-top: 0.25rem;'>{booking['updated_at'].strftime('%b %d, %Y • %I:%M %p')} by {booking['updated_by']}</div>
+                            <div style='color: #f7f5f2; font-size: 0.875rem; margin-top: 0.25rem;'>{booking['updated_at'].strftime(DATETIME_FMT)} by {booking['updated_by']}</div>
                         </div>
                     """, unsafe_allow_html=True)
 
@@ -880,7 +921,7 @@ if page == "Bookings":
             st.download_button(
                 label="Download Excel",
                 data=output.getvalue(),
-                file_name=f"bookings_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                file_name=f"bookings_{now_local().strftime('%Y%m%d')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
             )
@@ -891,7 +932,7 @@ if page == "Bookings":
             st.download_button(
                 label="Download CSV",
                 data=csv,
-                file_name=f"bookings_{datetime.now().strftime('%Y%m%d')}.csv",
+                file_name=f"bookings_{now_local().strftime('%Y%m%d')}.csv",
                 mime="text/csv",
                 use_container_width=True
             )
@@ -939,34 +980,34 @@ elif page == "Reports & Analytics":
 
         with col_range2:
             if analysis_period == "Last 7 Days":
-                analysis_start = datetime.now() - timedelta(days=7)
-                analysis_end = datetime.now()
+                analysis_start = now_local() - timedelta(days=7)
+                analysis_end = now_local()
             elif analysis_period == "Last 30 Days":
-                analysis_start = datetime.now() - timedelta(days=30)
-                analysis_end = datetime.now()
+                analysis_start = now_local() - timedelta(days=30)
+                analysis_end = now_local()
             elif analysis_period == "Last 90 Days":
-                analysis_start = datetime.now() - timedelta(days=90)
-                analysis_end = datetime.now()
+                analysis_start = now_local() - timedelta(days=90)
+                analysis_end = now_local()
             elif analysis_period == "Last 6 Months":
-                analysis_start = datetime.now() - timedelta(days=180)
-                analysis_end = datetime.now()
+                analysis_start = now_local() - timedelta(days=180)
+                analysis_end = now_local()
             elif analysis_period == "Last Year":
-                analysis_start = datetime.now() - timedelta(days=365)
-                analysis_end = datetime.now()
+                analysis_start = now_local() - timedelta(days=365)
+                analysis_end = now_local()
             elif analysis_period == "All Time":
                 analysis_start = df_analytics['timestamp'].min()
-                analysis_end = datetime.now()
+                analysis_end = now_local()
             else:  # Custom
                 custom_range = st.date_input(
                     "Custom Range",
-                    value=(datetime.now().date() - timedelta(days=30), datetime.now().date())
+                    value=(now_local().date() - timedelta(days=30), now_local().date())
                 )
                 if isinstance(custom_range, tuple) and len(custom_range) == 2:
                     analysis_start = pd.to_datetime(custom_range[0])
                     analysis_end = pd.to_datetime(custom_range[1])
                 else:
-                    analysis_start = datetime.now() - timedelta(days=30)
-                    analysis_end = datetime.now()
+                    analysis_start = now_local() - timedelta(days=30)
+                    analysis_end = now_local()
 
         # Filter data by analysis period
         analysis_df = df_analytics[
@@ -997,7 +1038,7 @@ elif page == "Reports & Analytics":
             st.markdown(f"""
                 <div style='background: linear-gradient(135deg, #081c3c 0%, #0d2847 100%); border: 2px solid #997424; border-radius: 12px; padding: 1.5rem; text-align: center;'>
                     <div style='color: #997424; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;'>Total Revenue</div>
-                    <div style='color: #10b981; font-size: 2.5rem; font-weight: 700;'>${total_revenue:,.0f}</div>
+                    <div style='color: #10b981; font-size: 2.5rem; font-weight: 700;'>{CURRENCY}{total_revenue:,.0f}</div>
                 </div>
             """, unsafe_allow_html=True)
 
@@ -1006,7 +1047,7 @@ elif page == "Reports & Analytics":
             st.markdown(f"""
                 <div style='background: linear-gradient(135deg, #081c3c 0%, #0d2847 100%); border: 2px solid #997424; border-radius: 12px; padding: 1.5rem; text-align: center;'>
                     <div style='color: #997424; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;'>Avg Booking Value</div>
-                    <div style='color: #fffefe; font-size: 2.5rem; font-weight: 700;'>${avg_booking_value:,.0f}</div>
+                    <div style='color: #fffefe; font-size: 2.5rem; font-weight: 700;'>{CURRENCY}{avg_booking_value:,.0f}</div>
                 </div>
             """, unsafe_allow_html=True)
 
@@ -1071,7 +1112,7 @@ elif page == "Reports & Analytics":
                     <div style='background: #0d2847; border: 2px solid #997424; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem;'>
                         <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;'>
                             <div style='color: #fffefe; font-weight: 600; font-size: 1rem;'>{status}</div>
-                            <div style='color: #10b981; font-weight: 700; font-size: 1.125rem;'>${revenue:,.0f}</div>
+                            <div style='color: #10b981; font-weight: 700; font-size: 1.125rem;'>{CURRENCY}{revenue:,.0f}</div>
                         </div>
                         <div style='background: #081c3c; border-radius: 4px; height: 8px; overflow: hidden;'>
                             <div style='background: linear-gradient(90deg, #10b981, #997424); height: 100%; width: {bar_width}%;'></div>
@@ -1113,7 +1154,7 @@ elif page == "Reports & Analytics":
                                 <span style='color: #fffefe; font-weight: 600; font-size: 0.75rem;'>{int(row['Bookings'])}</span>
                             </div>
                         </div>
-                        <div style='color: #10b981; font-weight: 700; min-width: 80px; text-align: right; font-size: 0.875rem;'>${row['Revenue']:,.0f}</div>
+                        <div style='color: #10b981; font-weight: 700; min-width: 80px; text-align: right; font-size: 0.875rem;'>{CURRENCY}{row['Revenue']:,.0f}</div>
                     </div>
                 """, unsafe_allow_html=True)
         else:
@@ -1225,8 +1266,8 @@ elif page == "Reports & Analytics":
             st.markdown(f"""
                 <div style='background: linear-gradient(135deg, #cc8855 0%, #a86d44 100%); border: 2px solid #fffefe; border-radius: 12px; padding: 1.5rem; text-align: center;'>
                     <div style='color: #fffefe; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;'>Hotel Revenue</div>
-                    <div style='color: #10b981; font-size: 2.5rem; font-weight: 700;'>${total_hotel_revenue:,.0f}</div>
-                    <div style='color: rgba(255,254,254,0.8); font-size: 0.75rem; margin-top: 0.5rem;'>Avg: ${avg_lodging_cost:,.0f}</div>
+                    <div style='color: #10b981; font-size: 2.5rem; font-weight: 700;'>{CURRENCY}{total_hotel_revenue:,.0f}</div>
+                    <div style='color: rgba(255,254,254,0.8); font-size: 0.75rem; margin-top: 0.5rem;'>Avg: {CURRENCY}{avg_lodging_cost:,.0f}</div>
                 </div>
             """, unsafe_allow_html=True)
 
@@ -1266,7 +1307,7 @@ elif page == "Reports & Analytics":
                 <div style='background: #0d2847; border: 2px solid #997424; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem;'>
                     <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;'>
                         <div style='color: #fffefe; font-weight: 600; font-size: 1rem;'>⛳ Golf Revenue</div>
-                        <div style='color: #10b981; font-weight: 700; font-size: 1.125rem;'>${hotel_golf_revenue:,.0f}</div>
+                        <div style='color: #10b981; font-weight: 700; font-size: 1.125rem;'>{CURRENCY}{hotel_golf_revenue:,.0f}</div>
                     </div>
                     <div style='background: #081c3c; border-radius: 4px; height: 8px; overflow: hidden;'>
                         <div style='background: linear-gradient(90deg, #997424, #10b981); height: 100%; width: {golf_revenue_percentage}%;'></div>
@@ -1280,7 +1321,7 @@ elif page == "Reports & Analytics":
                 <div style='background: #0d2847; border: 2px solid #cc8855; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem;'>
                     <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;'>
                         <div style='color: #fffefe; font-weight: 600; font-size: 1rem;'>🏨 Hotel Revenue</div>
-                        <div style='color: #cc8855; font-weight: 700; font-size: 1.125rem;'>${total_hotel_revenue:,.0f}</div>
+                        <div style='color: #cc8855; font-weight: 700; font-size: 1.125rem;'>{CURRENCY}{total_hotel_revenue:,.0f}</div>
                     </div>
                     <div style='background: #081c3c; border-radius: 4px; height: 8px; overflow: hidden;'>
                         <div style='background: linear-gradient(90deg, #cc8855, #a86d44); height: 100%; width: {hotel_revenue_percentage}%;'></div>
@@ -1293,7 +1334,7 @@ elif page == "Reports & Analytics":
             st.markdown(f"""
                 <div style='background: linear-gradient(135deg, #3a5a40 0%, #2d4a32 100%); border: 2px solid #10b981; border-radius: 8px; padding: 1rem; text-align: center;'>
                     <div style='color: rgba(255,255,255,0.8); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;'>Total Package Revenue</div>
-                    <div style='color: #10b981; font-size: 2rem; font-weight: 700;'>${total_package_revenue:,.0f}</div>
+                    <div style='color: #10b981; font-size: 2rem; font-weight: 700;'>{CURRENCY}{total_package_revenue:,.0f}</div>
                 </div>
             """, unsafe_allow_html=True)
 
@@ -1473,7 +1514,7 @@ elif page == "Reports & Analytics":
                     # Summary sheet
                     summary_data = {
                         'Metric': ['Total Bookings', 'Total Revenue', 'Avg Booking Value', 'Total Players'],
-                        'Value': [total_bookings, f"${total_revenue:,.2f}", f"${avg_booking_value:,.2f}", int(total_players)]
+                        'Value': [total_bookings, f"{CURRENCY}{total_revenue:,.2f}", f"{CURRENCY}{avg_booking_value:,.2f}", int(total_players)]
                     }
                     pd.DataFrame(summary_data).to_excel(writer, index=False, sheet_name='Summary')
 
@@ -1494,14 +1535,14 @@ elif page == "Reports & Analytics":
                         'Value': [
                             total_hotel_bookings,
                             f"{hotel_attachment_rate:.1f}%",
-                            f"${total_hotel_revenue:,.2f}",
-                            f"${avg_lodging_cost:,.2f}",
+                            f"{CURRENCY}{total_hotel_revenue:,.2f}",
+                            f"{CURRENCY}{avg_lodging_cost:,.2f}",
                             f"{avg_nights:.1f}",
                             int(total_room_nights),
                             f"{avg_rooms:.1f}",
-                            f"${total_package_revenue:,.2f}",
-                            f"${hotel_golf_revenue:,.2f}",
-                            f"${total_hotel_revenue:,.2f}"
+                            f"{CURRENCY}{total_package_revenue:,.2f}",
+                            f"{CURRENCY}{hotel_golf_revenue:,.2f}",
+                            f"{CURRENCY}{total_hotel_revenue:,.2f}"
                         ]
                     }
                     pd.DataFrame(hotel_summary_data).to_excel(writer, index=False, sheet_name='Hotel Summary')
@@ -1532,7 +1573,7 @@ elif page == "Reports & Analytics":
                 st.download_button(
                     label="Download Analytics Report",
                     data=output.getvalue(),
-                    file_name=f"analytics_report_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                    file_name=f"analytics_report_{now_local().strftime('%Y%m%d')}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=True,
                     key="analytics_download_excel"
@@ -1544,7 +1585,7 @@ elif page == "Reports & Analytics":
                 st.download_button(
                     label="Download CSV",
                     data=summary_csv,
-                    file_name=f"analytics_summary_{datetime.now().strftime('%Y%m%d')}.csv",
+                    file_name=f"analytics_summary_{now_local().strftime('%Y%m%d')}.csv",
                     mime="text/csv",
                     use_container_width=True,
                     key="analytics_download_csv"
@@ -1571,10 +1612,10 @@ elif page == "Reports & Analytics":
         report_col1, report_col2 = st.columns(2)
 
         with report_col1:
-            report_start = st.date_input("Start Date", value=datetime.now().date() - timedelta(days=30))
+            report_start = st.date_input("Start Date", value=now_local().date() - timedelta(days=30))
 
         with report_col2:
-            report_end = st.date_input("End Date", value=datetime.now().date())
+            report_end = st.date_input("End Date", value=now_local().date())
 
         # Filter data by report period
         report_df = df_reports[
@@ -1599,7 +1640,7 @@ elif page == "Reports & Analytics":
 
         with summary_col3:
             revenue_in_period = report_df[report_df['status'] == 'Booked']['total'].sum()
-            st.metric("Revenue", f"${revenue_in_period:,.2f}")
+            st.metric("Revenue", f"{CURRENCY}{revenue_in_period:,.2f}")
 
         st.markdown("<div style='height: 2px; background: #6b7c3f; margin: 2rem 0;'></div>", unsafe_allow_html=True)
 
@@ -1617,7 +1658,7 @@ elif page == "Reports & Analytics":
                 st.download_button(
                     label="Download Excel Report",
                     data=output.getvalue(),
-                    file_name=f"streamsong_report_{report_start}_{report_end}.xlsx",
+                    file_name=f"{PROFILE['export_prefix']}_report_{report_start}_{report_end}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=True
                 )
@@ -1628,7 +1669,7 @@ elif page == "Reports & Analytics":
                 st.download_button(
                     label="Download CSV Report",
                     data=csv,
-                    file_name=f"streamsong_report_{report_start}_{report_end}.csv",
+                    file_name=f"{PROFILE['export_prefix']}_report_{report_start}_{report_end}.csv",
                     mime="text/csv",
                     use_container_width=True
                 )
@@ -1667,7 +1708,7 @@ elif page == "Waitlist":
                     ["Flexible", "Morning Only", "Afternoon Only", "Specific Time Only"]
                 )
                 players = st.number_input("Number of Players", min_value=1, max_value=4, value=1)
-                golf_course = st.text_input("Golf Course", value="Streamsong Resort")
+                golf_course = st.selectbox("Golf Course", PROFILE['courses'])
                 priority = st.slider("Priority (1=Low, 10=High)", min_value=1, max_value=10, value=5)
 
             notes = st.text_area("Notes", placeholder="Additional information about this waitlist entry")
@@ -1742,7 +1783,7 @@ elif page == "Waitlist":
                     <div style='display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1rem;'>
                         <div>
                             <div style='color: #d4b896; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;'>Date</div>
-                            <div style='color: #f7f5f2; font-weight: 600;'>{entry['requested_date'].strftime('%b %d, %Y') if pd.notna(entry['requested_date']) else 'Not Set'}</div>
+                            <div style='color: #f7f5f2; font-weight: 600;'>{entry['requested_date'].strftime(DATE_FMT_SHORT) if pd.notna(entry['requested_date']) else 'Not Set'}</div>
                         </div>
                         <div>
                             <div style='color: #d4b896; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;'>Time</div>
@@ -1922,11 +1963,11 @@ elif page == "Marketing Segmentation":
                     </div>
                     <div>
                         <div style='color: #d4b896; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;'>Revenue</div>
-                        <div style='color: #10b981; font-weight: 700; font-size: 1.25rem;'>${segment['Total Revenue']:,.0f}</div>
+                        <div style='color: #10b981; font-weight: 700; font-size: 1.25rem;'>{CURRENCY}{segment['Total Revenue']:,.0f}</div>
                     </div>
                     <div>
                         <div style='color: #d4b896; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;'>Last Contact</div>
-                        <div style='color: #f7f5f2; font-weight: 600;'>{segment['Last Contact'].strftime('%b %d, %Y') if pd.notna(segment['Last Contact']) else 'N/A'}</div>
+                        <div style='color: #f7f5f2; font-weight: 600;'>{segment['Last Contact'].strftime(DATE_FMT_SHORT) if pd.notna(segment['Last Contact']) else 'N/A'}</div>
                     </div>
                 </div>
                 <div style='background: #2d3e4f; padding: 0.75rem; border-radius: 6px;'>
@@ -1948,7 +1989,7 @@ elif page == "Marketing Segmentation":
             st.download_button(
                 label="Download CSV",
                 data=csv_data,
-                file_name=f"marketing_segments_{datetime.now().strftime('%Y%m%d')}.csv",
+                file_name=f"marketing_segments_{now_local().strftime('%Y%m%d')}.csv",
                 mime="text/csv",
                 use_container_width=True,
                 key="download_segments_csv"
@@ -1961,7 +2002,7 @@ elif page == "Marketing Segmentation":
             st.download_button(
                 label="Download High Priority CSV",
                 data=csv_data,
-                file_name=f"high_priority_segments_{datetime.now().strftime('%Y%m%d')}.csv",
+                file_name=f"high_priority_segments_{now_local().strftime('%Y%m%d')}.csv",
                 mime="text/csv",
                 use_container_width=True,
                 key="download_high_priority_csv"
@@ -2005,7 +2046,7 @@ elif page == "Notify Integration":
         """, unsafe_allow_html=True)
 
     with col_stat3:
-        last_export = datetime.now().strftime('%b %d, %Y %I:%M %p')
+        last_export = now_local().strftime(DATETIME_FMT)
         st.markdown(f"""
             <div style='background: linear-gradient(135deg, #3d5266 0%, #5a6f85 100%); border: 2px solid #d4b896; border-radius: 12px; padding: 1.5rem; text-align: center;'>
                 <div style='color: #d4b896; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem;'>Last Export</div>
@@ -2026,7 +2067,7 @@ elif page == "Notify Integration":
             st.download_button(
                 label="Download JSON File",
                 data=json_data,
-                file_name=f"bookings_export_{datetime.now().strftime('%Y%m%d')}.json",
+                file_name=f"bookings_export_{now_local().strftime('%Y%m%d')}.json",
                 mime="application/json",
                 use_container_width=True,
                 key="download_json"
@@ -2042,7 +2083,7 @@ elif page == "Notify Integration":
             st.download_button(
                 label="Download Notify CSV",
                 data=csv_data,
-                file_name=f"notify_bookings_{datetime.now().strftime('%Y%m%d')}.csv",
+                file_name=f"notify_bookings_{now_local().strftime('%Y%m%d')}.csv",
                 mime="text/csv",
                 use_container_width=True,
                 key="download_notify_csv"
