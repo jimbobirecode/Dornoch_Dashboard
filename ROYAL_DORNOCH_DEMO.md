@@ -16,6 +16,7 @@ This branch makes the dashboard **club-profile driven** and adds a
 | Club filter | `customer_id` of the login | login must have `customer_id = 'royal_dornoch'` |
 | Journey emails | hard-coded `club = 'streamsong'` | filtered by the active profile's club id |
 | Pro-shop items | Streamsong cap / balls / polo | Royal Dornoch crested cap, logo balls, merino sweater |
+| Booking cards | email + tee time | plus **Guest details (booking form)**: lead guest, phone, caddies, handicaps and requests captured by the hosted `/book` form |
 
 Everything above lives in **`club_config.py`** (colours, formats, courses,
 pro-shop items). The core API has a matching `club_config.py` - keep the two
@@ -36,6 +37,8 @@ pro-shop items). The core API has a matching `club_config.py` - keep the two
   pro-shop items; the `🔍 DEBUG` banners that printed raw booking data into
   the UI are removed
 - `modules/utils/helpers.py` - tee-time extraction also accepts 24-hour times
+- `modules/database/bookings.py` - loads the booking-form columns (`guest_name`,
+  `contact_phone`, `caddie_requirements`, `special_requests`, `form_submitted_at`)
 
 ## Deploy on Render (new service for the demo)
 

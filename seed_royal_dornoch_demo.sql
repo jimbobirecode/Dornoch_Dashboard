@@ -61,6 +61,10 @@ CREATE TABLE IF NOT EXISTS bookings (
 
 -- Columns the code reads but older databases may not have
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS guest_name VARCHAR(255);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(50);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS caddie_requirements VARCHAR(100);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS special_requests TEXT;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS form_submitted_at TIMESTAMP;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS lodging_nights INTEGER;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS lodging_rooms INTEGER;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS lodging_room_type VARCHAR(100);
@@ -143,7 +147,7 @@ INSERT INTO bookings (
  FALSE, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
  ARRAY[to_char(CURRENT_DATE + 12, 'YYYY-MM-DD')], 'Championship Course',
  jsonb_build_array(jsonb_build_object('date', to_char(CURRENT_DATE + 12, 'YYYY-MM-DD'), 'time', '8:00 AM',
-   'course_name', 'Championship Course', 'players', 4, 'price', 360.00, 'total_cost', 1440.00))),
+   'course_name', 'Championship Course', 'players', 4, 'price', 360.00))),
 
 ('RDG-DEMO-0002', 'fiona.grant@example.com', 'Fiona Grant',
  CURRENT_DATE + 20, '10:10 AM', 2, 200.00, 'Inquiry',
@@ -154,7 +158,7 @@ INSERT INTO bookings (
  FALSE, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
  ARRAY[to_char(CURRENT_DATE + 20, 'YYYY-MM-DD')], 'Struie Course',
  jsonb_build_array(jsonb_build_object('date', to_char(CURRENT_DATE + 20, 'YYYY-MM-DD'), 'time', '10:10 AM',
-   'course_name', 'Struie Course', 'players', 2, 'price', 100.00, 'total_cost', 200.00))),
+   'course_name', 'Struie Course', 'players', 2, 'price', 100.00))),
 
 -- Requested: guest clicked "Request this tee time" - staff action needed
 ('RDG-DEMO-0003', 'sarah.mcleod@example.com', 'Sarah McLeod',
@@ -166,8 +170,8 @@ INSERT INTO bookings (
  TRUE, CURRENT_DATE + 14, CURRENT_DATE + 17, 3, 2, 'twin', 'Royal Golf Hotel preferred', 1320.00,
  ARRAY[to_char(CURRENT_DATE + 15, 'YYYY-MM-DD'), to_char(CURRENT_DATE + 16, 'YYYY-MM-DD')], 'Championship Course, Struie Course',
  jsonb_build_array(
-   jsonb_build_object('date', to_char(CURRENT_DATE + 15, 'YYYY-MM-DD'), 'time', '9:10 AM', 'course_name', 'Championship Course', 'players', 4, 'price', 360.00, 'total_cost', 1440.00),
-   jsonb_build_object('date', to_char(CURRENT_DATE + 16, 'YYYY-MM-DD'), 'time', '10:00 AM', 'course_name', 'Struie Course', 'players', 4, 'price', 100.00, 'total_cost', 400.00))),
+   jsonb_build_object('date', to_char(CURRENT_DATE + 15, 'YYYY-MM-DD'), 'time', '9:10 AM', 'course_name', 'Championship Course', 'players', 4, 'price', 360.00),
+   jsonb_build_object('date', to_char(CURRENT_DATE + 16, 'YYYY-MM-DD'), 'time', '10:00 AM', 'course_name', 'Struie Course', 'players', 4, 'price', 100.00))),
 
 ('RDG-DEMO-0004', 'events@northerncapital.example.com', 'Northern Capital Events',
  CURRENT_DATE + 30, '9:00 AM', 12, 4320.00, 'Requested',
@@ -178,7 +182,7 @@ INSERT INTO bookings (
  FALSE, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
  ARRAY[to_char(CURRENT_DATE + 30, 'YYYY-MM-DD')], 'Championship Course',
  jsonb_build_array(jsonb_build_object('date', to_char(CURRENT_DATE + 30, 'YYYY-MM-DD'), 'time', '9:00 AM',
-   'course_name', 'Championship Course', 'players', 12, 'price', 360.00, 'total_cost', 4320.00))),
+   'course_name', 'Championship Course', 'players', 12, 'price', 360.00))),
 
 -- Confirmed: tee time held, payment details sent (customer-journey welcome email due in 3 days)
 ('RDG-DEMO-0005', 'mike.obrien@example.com', 'Mike O''Brien',
@@ -188,7 +192,7 @@ INSERT INTO bookings (
  TRUE, CURRENT_DATE + 2, CURRENT_DATE + 5, 3, 2, 'double', 'Links House', 2370.00,
  ARRAY[to_char(CURRENT_DATE + 3, 'YYYY-MM-DD')], 'Championship Course',
  jsonb_build_array(jsonb_build_object('date', to_char(CURRENT_DATE + 3, 'YYYY-MM-DD'), 'time', '8:20 AM',
-   'course_name', 'Championship Course', 'players', 4, 'price', 360.00, 'total_cost', 1440.00))),
+   'course_name', 'Championship Course', 'players', 4, 'price', 360.00))),
 
 ('RDG-DEMO-0006', 'hans.mueller@example.de', 'Hans Mueller',
  CURRENT_DATE + 8, '2:30 PM', 3, 1080.00, 'Confirmed',
@@ -197,7 +201,7 @@ INSERT INTO bookings (
  FALSE, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
  ARRAY[to_char(CURRENT_DATE + 8, 'YYYY-MM-DD')], 'Championship Course',
  jsonb_build_array(jsonb_build_object('date', to_char(CURRENT_DATE + 8, 'YYYY-MM-DD'), 'time', '2:30 PM',
-   'course_name', 'Championship Course', 'players', 3, 'price', 360.00, 'total_cost', 1080.00))),
+   'course_name', 'Championship Course', 'players', 3, 'price', 360.00))),
 
 -- Booked: paid in full
 ('RDG-DEMO-0007', 'jenny.walsh@example.com', 'Jenny Walsh',
@@ -207,8 +211,8 @@ INSERT INTO bookings (
  TRUE, CURRENT_DATE + 24, CURRENT_DATE + 27, 3, 2, 'twin', 'Dornoch Station', 1080.00,
  ARRAY[to_char(CURRENT_DATE + 25, 'YYYY-MM-DD'), to_char(CURRENT_DATE + 26, 'YYYY-MM-DD')], 'Championship Course, Struie Course',
  jsonb_build_array(
-   jsonb_build_object('date', to_char(CURRENT_DATE + 25, 'YYYY-MM-DD'), 'time', '10:40 AM', 'course_name', 'Championship Course', 'players', 4, 'price', 360.00, 'total_cost', 1440.00),
-   jsonb_build_object('date', to_char(CURRENT_DATE + 26, 'YYYY-MM-DD'), 'time', '9:30 AM', 'course_name', 'Struie Course', 'players', 4, 'price', 100.00, 'total_cost', 400.00))),
+   jsonb_build_object('date', to_char(CURRENT_DATE + 25, 'YYYY-MM-DD'), 'time', '10:40 AM', 'course_name', 'Championship Course', 'players', 4, 'price', 360.00),
+   jsonb_build_object('date', to_char(CURRENT_DATE + 26, 'YYYY-MM-DD'), 'time', '9:30 AM', 'course_name', 'Struie Course', 'players', 4, 'price', 100.00))),
 
 ('RDG-DEMO-0008', 'carl.jensen@example.dk', 'Carl Jensen',
  CURRENT_DATE + 45, '7:50 AM', 4, 1440.00, 'Booked',
@@ -217,7 +221,7 @@ INSERT INTO bookings (
  FALSE, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
  ARRAY[to_char(CURRENT_DATE + 45, 'YYYY-MM-DD')], 'Championship Course',
  jsonb_build_array(jsonb_build_object('date', to_char(CURRENT_DATE + 45, 'YYYY-MM-DD'), 'time', '7:50 AM',
-   'course_name', 'Championship Course', 'players', 4, 'price', 360.00, 'total_cost', 1440.00))),
+   'course_name', 'Championship Course', 'players', 4, 'price', 360.00))),
 
 -- Played recently (customer-journey thank-you email due) and history for the reports page
 ('RDG-DEMO-0009', 'david.brown@example.com', 'David Brown',
@@ -227,7 +231,7 @@ INSERT INTO bookings (
  FALSE, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
  ARRAY[to_char(CURRENT_DATE - 2, 'YYYY-MM-DD')], 'Championship Course',
  jsonb_build_array(jsonb_build_object('date', to_char(CURRENT_DATE - 2, 'YYYY-MM-DD'), 'time', '9:40 AM',
-   'course_name', 'Championship Course', 'players', 4, 'price', 360.00, 'total_cost', 1440.00))),
+   'course_name', 'Championship Course', 'players', 4, 'price', 360.00))),
 
 ('RDG-DEMO-0010', 'lisa.taylor@example.com', 'Lisa Taylor',
  CURRENT_DATE - 10, '11:20 AM', 2, 720.00, 'Booked',
@@ -236,7 +240,7 @@ INSERT INTO bookings (
  TRUE, CURRENT_DATE - 11, CURRENT_DATE - 9, 2, 1, 'double', 'Dornoch Castle Hotel', 390.00,
  ARRAY[to_char(CURRENT_DATE - 10, 'YYYY-MM-DD')], 'Championship Course',
  jsonb_build_array(jsonb_build_object('date', to_char(CURRENT_DATE - 10, 'YYYY-MM-DD'), 'time', '11:20 AM',
-   'course_name', 'Championship Course', 'players', 2, 'price', 360.00, 'total_cost', 720.00))),
+   'course_name', 'Championship Course', 'players', 2, 'price', 360.00))),
 
 ('RDG-DEMO-0011', 'ken.watanabe@example.jp', 'Ken Watanabe',
  CURRENT_DATE - 24, '8:30 AM', 4, 1840.00, 'Booked',
@@ -245,8 +249,8 @@ INSERT INTO bookings (
  TRUE, CURRENT_DATE - 25, CURRENT_DATE - 22, 3, 2, 'twin', 'Royal Golf Hotel', 1320.00,
  ARRAY[to_char(CURRENT_DATE - 24, 'YYYY-MM-DD'), to_char(CURRENT_DATE - 23, 'YYYY-MM-DD')], 'Championship Course, Struie Course',
  jsonb_build_array(
-   jsonb_build_object('date', to_char(CURRENT_DATE - 24, 'YYYY-MM-DD'), 'time', '8:30 AM', 'course_name', 'Championship Course', 'players', 4, 'price', 360.00, 'total_cost', 1440.00),
-   jsonb_build_object('date', to_char(CURRENT_DATE - 23, 'YYYY-MM-DD'), 'time', '8:40 AM', 'course_name', 'Struie Course', 'players', 4, 'price', 100.00, 'total_cost', 400.00))),
+   jsonb_build_object('date', to_char(CURRENT_DATE - 24, 'YYYY-MM-DD'), 'time', '8:30 AM', 'course_name', 'Championship Course', 'players', 4, 'price', 360.00),
+   jsonb_build_object('date', to_char(CURRENT_DATE - 23, 'YYYY-MM-DD'), 'time', '8:40 AM', 'course_name', 'Struie Course', 'players', 4, 'price', 100.00))),
 
 -- Rejected: no availability during a member competition
 ('RDG-DEMO-0012', 'alan.reid@example.com', 'Alan Reid',
@@ -266,6 +270,29 @@ VALUES
 ('WL-DEMO-0001', 'alan.reid@example.com', 'Alan Reid', CURRENT_DATE + 5, 'Morning', 'Flexible', 8, 'Championship Course', 'Waiting', 7, 'Happy with Sunday if Saturday stays full', 'royal_dornoch'),
 ('WL-DEMO-0002', 'p.nilsson@example.se', 'Petra Nilsson', CURRENT_DATE + 12, 'Afternoon', 'Same day only', 2, 'Championship Course', 'Waiting', 5, NULL, 'royal_dornoch'),
 ('WL-DEMO-0003', 'greg.moore@example.com', 'Greg Moore', CURRENT_DATE + 18, 'Any', 'Flexible', 4, 'Struie Course', 'Notified', 4, 'Notified of 15:30 opening', 'royal_dornoch');
+
+-- Guest details as captured by the hosted booking form (Requested and later)
+UPDATE bookings SET contact_phone = '+44 7700 900123', caddie_requirements = '2 caddies',
+    special_requests = E'Handicaps: 8, 12, 15, 21\nOne trolley please. We would love lunch in the clubhouse after the Struie round.',
+    form_submitted_at = NOW() - INTERVAL '3 hours'
+WHERE booking_id = 'RDG-DEMO-0003';
+UPDATE bookings SET contact_phone = '+44 20 7946 0958', caddie_requirements = 'Please contact me to discuss',
+    special_requests = E'Handicaps: mixed, 6 to 28\nCorporate day for Northern Capital - private dining for 12 after golf, invoice to the company.',
+    form_submitted_at = NOW() - INTERVAL '6 hours'
+WHERE booking_id = 'RDG-DEMO-0004';
+UPDATE bookings SET contact_phone = '+1 617 555 0142', caddie_requirements = '4 caddies (one per player)',
+    special_requests = E'Handicaps: 10, 14, 17, 19\nFirst trip to Scotland - staying at Links House.',
+    form_submitted_at = NOW() - INTERVAL '8 days'
+WHERE booking_id = 'RDG-DEMO-0005';
+UPDATE bookings SET contact_phone = '+49 171 5550123', caddie_requirements = 'No caddies required',
+    special_requests = 'Handicaps: 5, 9, 11', form_submitted_at = NOW() - INTERVAL '11 days'
+WHERE booking_id = 'RDG-DEMO-0006';
+UPDATE bookings SET contact_phone = '+353 87 555 0199', caddie_requirements = '2 caddies',
+    special_requests = E'Handicaps: 13, 16, 18, 22\nTwo buggies if possible for the Struie day.', form_submitted_at = NOW() - INTERVAL '19 days'
+WHERE booking_id = 'RDG-DEMO-0007';
+UPDATE bookings SET contact_phone = '+45 20 55 01 23', caddie_requirements = '1 caddie',
+    special_requests = 'Handicaps: 4, 7, 12, 15', form_submitted_at = NOW() - INTERVAL '29 days'
+WHERE booking_id = 'RDG-DEMO-0008';
 
 COMMIT;
 

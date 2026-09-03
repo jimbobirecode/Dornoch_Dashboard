@@ -644,6 +644,31 @@ if page == "Bookings":
 
                     hotel_details_html = f"<div style='margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(107, 124, 63, 0.3);'><div style='color: #cc8855; font-weight: 700; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;'>🏨 LODGING</div>{hotel_grid}{prefs_section}</div>"
 
+            # Guest details captured by the hosted booking form
+            form_details_html = ""
+            _guest_name = booking.get('guest_name')
+            _phone = booking.get('contact_phone')
+            _caddies = booking.get('caddie_requirements')
+            _requests = booking.get('special_requests')
+            _has = lambda v: v is not None and not (isinstance(v, float) and pd.isna(v)) and str(v).strip() and str(v) != 'nan'
+            if any(_has(v) for v in (_guest_name, _phone, _caddies, _requests)):
+                form_cols = []
+                if _has(_guest_name):
+                    form_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>LEAD GUEST</div><div style='font-size: 0.95rem; font-weight: 600; color: #f7f5f2;'>{html.escape(str(_guest_name))}</div></div>")
+                if _has(_phone):
+                    form_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>PHONE</div><div style='font-size: 0.95rem; font-weight: 600; color: #f7f5f2;'><a href='tel:{html.escape(str(_phone))}' style='color: #f7f5f2; text-decoration: none;'>{html.escape(str(_phone))}</a></div></div>")
+                if _has(_caddies):
+                    form_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>CADDIES</div><div style='font-size: 0.9rem; font-weight: 600; color: #f7f5f2;'>{html.escape(str(_caddies))}</div></div>")
+                _submitted = booking.get('form_submitted_at')
+                if _submitted is not None and not pd.isna(_submitted) and hasattr(_submitted, 'strftime'):
+                    form_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>FORM SUBMITTED</div><div style='font-size: 0.9rem; font-weight: 600; color: #f7f5f2;'>{_submitted.strftime(DATETIME_FMT)}</div></div>")
+                form_grid = f"<div style='display: grid; grid-template-columns: repeat({len(form_cols)}, 1fr); gap: 1.5rem; margin-bottom: 0.5rem;'>{''.join(form_cols)}</div>"
+                requests_section = ""
+                if _has(_requests):
+                    requests_text = html.escape(str(_requests)).replace('\n', '<br>')
+                    requests_section = f"<div style='margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid rgba(107, 124, 63, 0.2);'><div class='data-label' style='margin-bottom: 0.25rem;'>GUEST REQUESTS</div><div style='font-size: 0.85rem; color: #d4b896; line-height: 1.4;'>{requests_text}</div></div>"
+                form_details_html = f"<div style='margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(107, 124, 63, 0.3);'><div style='color: #87a7b3; font-weight: 700; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;'>📝 GUEST DETAILS (BOOKING FORM)</div>{form_grid}{requests_section}</div>"
+
             # Parse and display selected_tee_times in the existing blue section
             selected_tee_times = booking.get('selected_tee_times', None)
             tee_times_section_html = ""
@@ -765,7 +790,7 @@ if page == "Bookings":
             note_display = html.escape(note_content).replace('\n', '<br>')
 
             # Build complete card HTML (without notes - notes will be in expander below)
-            card_html = f"<div class='booking-card' style='background: linear-gradient(135deg, #3d5266 0%, #4a6278 100%); border: 2px solid #6b7c3f; border-radius: 12px; padding: 1.5rem; margin-bottom: 0.5rem; box-shadow: 0 4px 16px rgba(107, 124, 63, 0.3); transition: all 0.3s ease;'><div style='display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem;'><div style='flex: 1;'><div style='display: flex; align-items: center;'><div class='booking-id' style='margin-bottom: 0.5rem;'>{html.escape(str(booking['booking_id']))}</div>{hotel_badge}</div><div class='booking-email'>{html.escape(str(booking['guest_email']))}</div></div><div style='text-align: right;'><div class='timestamp'>REQUESTED</div><div class='timestamp-value'>{requested_time}</div></div></div><div style='margin-bottom: 1.5rem;'>{progress_html}</div><div style='height: 1px; background: linear-gradient(90deg, transparent, #6b7c3f, transparent); margin: 1.5rem 0;'></div>{tee_times_section_html}{hotel_details_html}</div>"
+            card_html = f"<div class='booking-card' style='background: linear-gradient(135deg, #3d5266 0%, #4a6278 100%); border: 2px solid #6b7c3f; border-radius: 12px; padding: 1.5rem; margin-bottom: 0.5rem; box-shadow: 0 4px 16px rgba(107, 124, 63, 0.3); transition: all 0.3s ease;'><div style='display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem;'><div style='flex: 1;'><div style='display: flex; align-items: center;'><div class='booking-id' style='margin-bottom: 0.5rem;'>{html.escape(str(booking['booking_id']))}</div>{hotel_badge}</div><div class='booking-email'>{html.escape(str(booking['guest_email']))}</div></div><div style='text-align: right;'><div class='timestamp'>REQUESTED</div><div class='timestamp-value'>{requested_time}</div></div></div><div style='margin-bottom: 1.5rem;'>{progress_html}</div><div style='height: 1px; background: linear-gradient(90deg, transparent, #6b7c3f, transparent); margin: 1.5rem 0;'></div>{tee_times_section_html}{form_details_html}{hotel_details_html}</div>"
 
             # Render the complete card
             st.markdown(card_html, unsafe_allow_html=True)
