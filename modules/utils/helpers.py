@@ -25,6 +25,8 @@ def extract_tee_time_from_note(note_content):
         r'Time:\s*(\d{1,2}:\d{2}\s*[AaPp][Mm])',  # Time: 12:20 PM
         r'time:\s*(\d{1,2}:\d{2}\s*[AaPp][Mm])',  # time: 12:20 pm (case insensitive)
         r'Tee\s+Time:\s*(\d{1,2}:\d{2}\s*[AaPp][Mm])',  # Tee Time: 12:20 PM
+        r'Tee\s+Time:\s*(\d{1,2}:\d{2})(?!\s*[AaPp][Mm])',  # Tee Time: 09:20 (24h, UK tee sheets)
+        r'Time:\s*(\d{1,2}:\d{2})(?!\s*[AaPp][Mm])',  # Time: 09:20 (24h)
     ]
 
     for pattern in patterns:

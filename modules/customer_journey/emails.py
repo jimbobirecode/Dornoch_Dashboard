@@ -15,6 +15,7 @@ import pandas as pd
 from psycopg.rows import dict_row
 
 from ..database.connection import get_db_connection
+from club_config import PROFILE, CLUB_ID, CURRENCY, DATE_FMT_LONG, DATE_FMT_MEDIUM, DATE_FMT_DAY, DATE_FMT_SHORT, DATETIME_COMPACT, money
 
 
 def extract_tee_time_from_note(note_content):
@@ -64,7 +65,7 @@ def extract_tee_time_from_selected_tee_times(selected_tee_times):
 
         # Strategy 2: Check if it's a Go map format (map[...time:10:35 AM...])
         # Extract time using regex from format like: map[...time:10:35 AM...]
-        map_time_match = re.search(r'time:(\d{1,2}:\d{2}\s*[AaPp][Mm])', selected_tee_times)
+        map_time_match = re.search(r'time:(\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?)', selected_tee_times)
         if map_time_match:
             return map_time_match.group(1).strip()
 
@@ -82,7 +83,7 @@ def extract_tee_time_from_selected_tee_times(selected_tee_times):
 
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
 FROM_EMAIL = os.environ.get('FROM_EMAIL')
-FROM_NAME = os.environ.get('FROM_NAME', 'Streamsong Golf Resort')
+FROM_NAME = PROFILE['from_name']
 TEMPLATE_PRE_ARRIVAL = os.environ.get('SENDGRID_TEMPLATE_PRE_ARRIVAL')
 TEMPLATE_POST_PLAY = os.environ.get('SENDGRID_TEMPLATE_POST_PLAY')
 
@@ -118,11 +119,11 @@ def get_upcoming_bookings(days_ahead=3, show_all=False):
 
     # Build the WHERE clause based on show_all
     if show_all:
-        where_clause = "WHERE club = 'streamsong' AND status = 'Confirmed' AND date >= CURRENT_DATE"
-        params = ()
+        where_clause = "WHERE club = %s AND status = 'Confirmed' AND date >= CURRENT_DATE"
+        params = (CLUB_ID,)
     else:
-        where_clause = "WHERE club = 'streamsong' AND status = 'Confirmed' AND date = %s"
-        params = (target_date,)
+        where_clause = "WHERE club = %s AND status = 'Confirmed' AND date = %s"
+        params = (CLUB_ID, target_date)
 
     # Note: We fetch 'note' field which contains email content with tee time info
     if has_email_tracking:
@@ -216,11 +217,11 @@ def get_recent_bookings(days_ago=2, show_all=False):
 
     # Build the WHERE clause based on show_all
     if show_all:
-        where_clause = "WHERE club = 'streamsong' AND status = 'Confirmed' AND date >= CURRENT_DATE - INTERVAL '30 days'"
-        params = ()
+        where_clause = "WHERE club = %s AND status = 'Confirmed' AND date >= CURRENT_DATE - INTERVAL '30 days'"
+        params = (CLUB_ID,)
     else:
-        where_clause = "WHERE club = 'streamsong' AND status = 'Confirmed' AND date = %s"
-        params = (target_date,)
+        where_clause = "WHERE club = %s AND status = 'Confirmed' AND date = %s"
+        params = (CLUB_ID, target_date)
 
     if has_email_tracking:
         cursor.execute(f"""
@@ -335,29 +336,7 @@ def get_proshop_items():
     Return proshop items to feature in emails
     CUSTOMIZE THIS with your actual products and pricing
     """
-    return [
-        {
-            'name': 'Streamsong Resort Cap',
-            'description': 'Premium embroidered cap with Streamsong logo',
-            'price': '35',
-            'image_url': 'https://streamsonggolf.com/images/cap.jpg',
-            'url': 'https://streamsonggolf.com/proshop/cap'
-        },
-        {
-            'name': 'Titleist Pro V1',
-            'description': 'Dozen premium golf balls - perfect for Streamsong courses',
-            'price': '55',
-            'image_url': 'https://streamsonggolf.com/images/balls.jpg',
-            'url': 'https://streamsonggolf.com/proshop/balls'
-        },
-        {
-            'name': 'Streamsong Performance Polo',
-            'description': 'Moisture-wicking performance polo with resort logo',
-            'price': '85',
-            'image_url': 'https://streamsonggolf.com/images/polo.jpg',
-            'url': 'https://streamsonggolf.com/proshop/polo'
-        }
-    ]
+    return list(PROFILE.get('proshop_items', []))
 
 
 def send_welcome_email(booking):
@@ -368,14 +347,10 @@ def send_welcome_email(booking):
         tee_time_raw = booking.get('tee_time')
         selected_tee_times_raw = booking.get('selected_tee_times')
         note_raw = booking.get('note')
-        st.info(f"🔍 DEBUG - Raw tee_time from DB: {repr(tee_time_raw)}")
-        st.info(f"🔍 DEBUG - Raw selected_tee_times from DB: {repr(selected_tee_times_raw)}")
 
         # Extract tee time from various sources
         extracted_from_selected = extract_tee_time_from_selected_tee_times(selected_tee_times_raw)
         extracted_from_note = extract_tee_time_from_note(note_raw) if note_raw else None
-        st.info(f"🔍 DEBUG - Tee time extracted from selected_tee_times: {repr(extracted_from_selected)}")
-        st.info(f"🔍 DEBUG - Tee time extracted from note: {repr(extracted_from_note)}")
 
         # Check if SendGrid is configured
         if not SENDGRID_API_KEY or not FROM_EMAIL or not TEMPLATE_PRE_ARRIVAL:
@@ -394,7 +369,7 @@ def send_welcome_email(booking):
         # Format the play date nicely
         play_date = booking['play_date']
         if hasattr(play_date, 'strftime'):
-            formatted_date = play_date.strftime('%A, %B %d, %Y')
+            formatted_date = play_date.strftime(DATE_FMT_LONG)
         else:
             formatted_date = str(play_date)
 
@@ -403,12 +378,12 @@ def send_welcome_email(booking):
         hotel_checkout_formatted = ''
         if booking.get('hotel_checkin'):
             if hasattr(booking['hotel_checkin'], 'strftime'):
-                hotel_checkin_formatted = booking['hotel_checkin'].strftime('%A, %B %d, %Y')
+                hotel_checkin_formatted = booking['hotel_checkin'].strftime(DATE_FMT_LONG)
             else:
                 hotel_checkin_formatted = str(booking['hotel_checkin'])
         if booking.get('hotel_checkout'):
             if hasattr(booking['hotel_checkout'], 'strftime'):
-                hotel_checkout_formatted = booking['hotel_checkout'].strftime('%A, %B %d, %Y')
+                hotel_checkout_formatted = booking['hotel_checkout'].strftime(DATE_FMT_LONG)
             else:
                 hotel_checkout_formatted = str(booking['hotel_checkout'])
 
@@ -419,28 +394,27 @@ def send_welcome_email(booking):
         # 3. Extract from note field using regex
         # 4. Default to 'TBD'
         tee_time_value = booking.get('tee_time') or extracted_from_selected or extracted_from_note or 'TBD'
-        st.info(f"🔍 DEBUG - Final tee time being sent to SendGrid: {repr(tee_time_value)}")
 
         dynamic_data = {
             # Your template uses these exact field names:
             'guest_name': guest_name,
             'booking_date': formatted_date,               # Template: {{booking_date}}
-            'course_name': booking.get('golf_courses') or 'Streamsong Golf Resort',  # Template: {{course_name}}
+            'course_name': booking.get('golf_courses') or PROFILE['default_course'],  # Template: {{course_name}}
             'tee_time': tee_time_value,  # Template: {{tee_time}}
             'player_count': str(booking.get('players', 0)),  # Template: {{player_count}}
             'booking_reference': booking['booking_id'],    # Template: {{booking_reference}}
-            'product_price': '$98.00',                     # Template: {{product_price}}
+            'product_price': PROFILE['journey_product_price'],                     # Template: {{product_price}}
             'current_year': str(datetime.now().year),     # Template: {{current_year}}
 
             # Backward compatibility (keep these for old templates)
             'date': formatted_date,
-            'course': booking.get('golf_courses') or 'Streamsong Golf Resort',
+            'course': booking.get('golf_courses') or PROFILE['default_course'],
             'players': str(booking.get('players', 0)),
             'booking_ref': booking['booking_id'],
             'play_date': formatted_date,
 
             # Additional details
-            'total': f"${booking.get('total', 0):.2f}" if booking.get('total') else '$0.00',
+            'total': money(booking.get('total', 0)) if booking.get('total') else money(0),
             'club_email': FROM_EMAIL,
             'proshop_items': get_proshop_items(),
 
@@ -451,12 +425,11 @@ def send_welcome_email(booking):
             'lodging_nights': str(booking.get('lodging_nights') or 0),
             'lodging_rooms': str(booking.get('lodging_rooms') or 0),
             'lodging_room_type': booking.get('lodging_room_type') or '',
-            'lodging_cost': f"${booking.get('lodging_cost', 0):.2f}" if booking.get('lodging_cost') else '',
-            'resort_fee_per_person': f"${booking.get('resort_fee_per_person', 0):.2f}" if booking.get('resort_fee_per_person') else '',
-            'resort_fee_total': f"${booking.get('resort_fee_total', 0):.2f}" if booking.get('resort_fee_total') else '',
+            'lodging_cost': money(booking.get('lodging_cost', 0)) if booking.get('lodging_cost') else '',
+            'resort_fee_per_person': money(booking.get('resort_fee_per_person', 0)) if booking.get('resort_fee_per_person') else '',
+            'resort_fee_total': money(booking.get('resort_fee_total', 0)) if booking.get('resort_fee_total') else '',
         }
 
-        st.info(f"🔍 DEBUG - Full dynamic_data keys: {list(dynamic_data.keys())}")
 
         message = Mail(
             from_email=(FROM_EMAIL, FROM_NAME),
@@ -486,14 +459,10 @@ def send_thank_you_email(booking):
         tee_time_raw = booking.get('tee_time')
         selected_tee_times_raw = booking.get('selected_tee_times')
         note_raw = booking.get('note')
-        st.info(f"🔍 DEBUG - Raw tee_time from DB: {repr(tee_time_raw)}")
-        st.info(f"🔍 DEBUG - Raw selected_tee_times from DB: {repr(selected_tee_times_raw)}")
 
         # Extract tee time from various sources
         extracted_from_selected = extract_tee_time_from_selected_tee_times(selected_tee_times_raw)
         extracted_from_note = extract_tee_time_from_note(note_raw) if note_raw else None
-        st.info(f"🔍 DEBUG - Tee time extracted from selected_tee_times: {repr(extracted_from_selected)}")
-        st.info(f"🔍 DEBUG - Tee time extracted from note: {repr(extracted_from_note)}")
 
         # Check if SendGrid is configured
         if not SENDGRID_API_KEY or not FROM_EMAIL or not TEMPLATE_POST_PLAY:
@@ -512,7 +481,7 @@ def send_thank_you_email(booking):
         # Format the play date nicely
         play_date = booking['play_date']
         if hasattr(play_date, 'strftime'):
-            formatted_date = play_date.strftime('%A, %B %d, %Y')
+            formatted_date = play_date.strftime(DATE_FMT_LONG)
         else:
             formatted_date = str(play_date)
 
@@ -521,12 +490,12 @@ def send_thank_you_email(booking):
         hotel_checkout_formatted = ''
         if booking.get('hotel_checkin'):
             if hasattr(booking['hotel_checkin'], 'strftime'):
-                hotel_checkin_formatted = booking['hotel_checkin'].strftime('%A, %B %d, %Y')
+                hotel_checkin_formatted = booking['hotel_checkin'].strftime(DATE_FMT_LONG)
             else:
                 hotel_checkin_formatted = str(booking['hotel_checkin'])
         if booking.get('hotel_checkout'):
             if hasattr(booking['hotel_checkout'], 'strftime'):
-                hotel_checkout_formatted = booking['hotel_checkout'].strftime('%A, %B %d, %Y')
+                hotel_checkout_formatted = booking['hotel_checkout'].strftime(DATE_FMT_LONG)
             else:
                 hotel_checkout_formatted = str(booking['hotel_checkout'])
 
@@ -537,28 +506,27 @@ def send_thank_you_email(booking):
         # 3. Extract from note field using regex
         # 4. Default to 'TBD'
         tee_time_value = booking.get('tee_time') or extracted_from_selected or extracted_from_note or 'TBD'
-        st.info(f"🔍 DEBUG - Final tee time being sent to SendGrid: {repr(tee_time_value)}")
 
         dynamic_data = {
             # Your template uses these exact field names:
             'guest_name': guest_name,
             'booking_date': formatted_date,               # Template: {{booking_date}}
-            'course_name': booking.get('golf_courses') or 'Streamsong Golf Resort',  # Template: {{course_name}}
+            'course_name': booking.get('golf_courses') or PROFILE['default_course'],  # Template: {{course_name}}
             'tee_time': tee_time_value,  # Template: {{tee_time}}
             'player_count': str(booking.get('players', 0)),  # Template: {{player_count}}
             'booking_reference': booking['booking_id'],    # Template: {{booking_reference}}
-            'product_price': '$98.00',                     # Template: {{product_price}}
+            'product_price': PROFILE['journey_product_price'],                     # Template: {{product_price}}
             'current_year': str(datetime.now().year),     # Template: {{current_year}}
 
             # Backward compatibility (keep these for old templates)
             'date': formatted_date,
-            'course': booking.get('golf_courses') or 'Streamsong Golf Resort',
+            'course': booking.get('golf_courses') or PROFILE['default_course'],
             'players': str(booking.get('players', 0)),
             'booking_ref': booking['booking_id'],
             'play_date': formatted_date,
 
             # Additional details
-            'total': f"${booking.get('total', 0):.2f}" if booking.get('total') else '$0.00',
+            'total': money(booking.get('total', 0)) if booking.get('total') else money(0),
             'club_email': FROM_EMAIL,
             'proshop_items': get_proshop_items(),
 
@@ -569,12 +537,11 @@ def send_thank_you_email(booking):
             'lodging_nights': str(booking.get('lodging_nights') or 0),
             'lodging_rooms': str(booking.get('lodging_rooms') or 0),
             'lodging_room_type': booking.get('lodging_room_type') or '',
-            'lodging_cost': f"${booking.get('lodging_cost', 0):.2f}" if booking.get('lodging_cost') else '',
-            'resort_fee_per_person': f"${booking.get('resort_fee_per_person', 0):.2f}" if booking.get('resort_fee_per_person') else '',
-            'resort_fee_total': f"${booking.get('resort_fee_total', 0):.2f}" if booking.get('resort_fee_total') else '',
+            'lodging_cost': money(booking.get('lodging_cost', 0)) if booking.get('lodging_cost') else '',
+            'resort_fee_per_person': money(booking.get('resort_fee_per_person', 0)) if booking.get('resort_fee_per_person') else '',
+            'resort_fee_total': money(booking.get('resort_fee_total', 0)) if booking.get('resort_fee_total') else '',
         }
 
-        st.info(f"🔍 DEBUG - Full dynamic_data keys: {list(dynamic_data.keys())}")
 
         message = Mail(
             from_email=(FROM_EMAIL, FROM_NAME),
@@ -629,13 +596,13 @@ def render_customer_journey_page():
                 st.info("No upcoming confirmed bookings found")
             else:
                 target_date = (datetime.now() + timedelta(days=3)).date()
-                st.info(f"No bookings scheduled for {target_date.strftime('%B %d, %Y')} (3 days from now)")
+                st.info(f"No bookings scheduled for {target_date.strftime(DATE_FMT_MEDIUM)} (3 days from now)")
         else:
             if show_all_upcoming:
                 st.success(f"**{len(bookings)} upcoming bookings** (send immediately to any)")
             else:
                 target_date = bookings[0]['play_date']
-                st.success(f"**{len(bookings)} bookings** scheduled for {target_date.strftime('%B %d, %Y')}")
+                st.success(f"**{len(bookings)} bookings** scheduled for {target_date.strftime(DATE_FMT_MEDIUM)}")
 
             # Display each booking
             for booking in bookings:
@@ -643,12 +610,12 @@ def render_customer_journey_page():
 
                 with col1:
                     st.markdown(f"**{booking['guest_email']}**")
-                    date_str = booking['play_date'].strftime('%b %d') if hasattr(booking['play_date'], 'strftime') else str(booking['play_date'])
+                    date_str = booking['play_date'].strftime(DATE_FMT_DAY) if hasattr(booking['play_date'], 'strftime') else str(booking['play_date'])
                     st.caption(f"📅 {date_str} • 🕐 {booking.get('tee_time', 'TBD')} • {booking['players']} players")
 
                 with col2:
                     if booking['pre_arrival_email_sent_at']:
-                        st.success(f"✅ Sent {booking['pre_arrival_email_sent_at'].strftime('%b %d, %I:%M %p')}")
+                        st.success(f"✅ Sent {booking['pre_arrival_email_sent_at'].strftime(DATE_FMT_DAY + ' %H:%M')}")
                     else:
                         st.warning("⏳ Not sent yet")
 
@@ -702,24 +669,24 @@ def render_customer_journey_page():
                 st.info("No recent confirmed bookings found (last 30 days)")
             else:
                 target_date = (datetime.now() - timedelta(days=2)).date()
-                st.info(f"No bookings from {target_date.strftime('%B %d, %Y')} (2 days ago)")
+                st.info(f"No bookings from {target_date.strftime(DATE_FMT_MEDIUM)} (2 days ago)")
         else:
             if show_all_recent:
                 st.success(f"**{len(bookings)} recent bookings** (last 30 days - send immediately to any)")
             else:
                 target_date = bookings[0]['play_date']
-                st.success(f"**{len(bookings)} guests** played on {target_date.strftime('%B %d, %Y')}")
+                st.success(f"**{len(bookings)} guests** played on {target_date.strftime(DATE_FMT_MEDIUM)}")
 
             for booking in bookings:
                 col1, col2, col3 = st.columns([3, 2, 2])
 
                 with col1:
                     st.markdown(f"**{booking['guest_email']}**")
-                    st.caption(f"Played on {booking['play_date'].strftime('%b %d, %Y')}")
+                    st.caption(f"Played on {booking['play_date'].strftime(DATE_FMT_SHORT)}")
 
                 with col2:
                     if booking['post_play_email_sent_at']:
-                        st.success(f"✅ Sent {booking['post_play_email_sent_at'].strftime('%b %d, %I:%M %p')}")
+                        st.success(f"✅ Sent {booking['post_play_email_sent_at'].strftime(DATE_FMT_DAY + ' %H:%M')}")
                     else:
                         st.warning("⏳ Not sent yet")
 
@@ -840,10 +807,10 @@ def render_customer_journey_page():
 
             # Handle None values in timestamp columns
             df['pre_arrival_email_sent_at'] = df['pre_arrival_email_sent_at'].apply(
-                lambda x: x.strftime('%m/%d %I:%M%p') if pd.notna(x) else '-'
+                lambda x: x.strftime(DATETIME_COMPACT) if pd.notna(x) else '-'
             )
             df['post_play_email_sent_at'] = df['post_play_email_sent_at'].apply(
-                lambda x: x.strftime('%m/%d %I:%M%p') if pd.notna(x) else '-'
+                lambda x: x.strftime(DATETIME_COMPACT) if pd.notna(x) else '-'
             )
 
             st.dataframe(df, use_container_width=True, hide_index=True)
