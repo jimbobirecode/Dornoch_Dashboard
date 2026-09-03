@@ -21,16 +21,30 @@ def load_bookings_from_db(club_filter):
         conn = get_db_connection()
         cursor = conn.cursor(row_factory=dict_row)
 
+        # Columns added by later migrations - select them only if the database
+        # has them, so an un-migrated database still loads (values come back NULL)
+        optional_columns = [
+            'hotel_checkin', 'hotel_checkout', 'golf_courses', 'selected_tee_times',
+            'lodging_nights', 'lodging_rooms', 'lodging_room_type',
+            'lodging_preferences', 'lodging_cost',
+            'resort_fee_per_person', 'resort_fee_total',
+            'guest_name', 'contact_phone', 'caddie_requirements', 'special_requests', 'form_submitted_at',
+        ]
         cursor.execute("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name = 'bookings' AND table_schema = current_schema()
+        """)
+        existing = {row['column_name'] for row in cursor.fetchall()}
+        optional_sql = ', '.join(
+            col if col in existing else f'NULL AS {col}' for col in optional_columns
+        )
+
+        cursor.execute(f"""
             SELECT
                 id, booking_id, guest_email, date, tee_time, players, total,
                 status, note, club, timestamp, customer_confirmed_at,
                 updated_at, updated_by, created_at, hotel_required,
-                hotel_checkin, hotel_checkout, golf_courses, selected_tee_times,
-                lodging_nights, lodging_rooms, lodging_room_type,
-                lodging_preferences, lodging_cost,
-                resort_fee_per_person, resort_fee_total,
-                guest_name, contact_phone, caddie_requirements, special_requests, form_submitted_at
+                {optional_sql}
             FROM bookings
             WHERE club = %s
             ORDER BY timestamp DESC
