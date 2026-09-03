@@ -4,7 +4,34 @@ from datetime import datetime, timedelta
 from io import BytesIO
 import html
 import json
+import os
 import re
+
+# ----------------------------------------------------------------------------
+# Branding / locale
+# ----------------------------------------------------------------------------
+CLUB_ID = os.environ.get('CLUB_ID', 'dornoch')
+CLUB_NAME = os.environ.get('CLUB_NAME', 'Royal Dornoch Golf Club')
+CURRENCY_SYMBOL = os.environ.get('CURRENCY_SYMBOL', '\u00a3')
+
+# Club logo. Drop the file in at this path; until it exists the dashboard
+# falls back to the club name as a text wordmark rather than erroring.
+LOGO_PATH = os.environ.get('LOGO_PATH', 'assets/dornoch-logo.png')
+LOGO_AVAILABLE = os.path.exists(LOGO_PATH)
+
+
+def render_logo(**kwargs):
+    """Render the club logo, or a text wordmark when the asset is missing."""
+    if LOGO_AVAILABLE:
+        st.image(LOGO_PATH, **kwargs)
+    else:
+        st.markdown(
+            "<div style='text-align: center; font-family: Georgia, serif; "
+            "color: #F6F3EC; font-size: 1.25rem; font-weight: 700; "
+            "letter-spacing: 1px; text-transform: uppercase; padding: 0.5rem 0;'>"
+            f"{CLUB_NAME}</div>",
+            unsafe_allow_html=True,
+        )
 
 # Import modular components
 from modules.auth import (
@@ -88,14 +115,14 @@ def logout():
 # STREAMLIT PAGE CONFIG
 # ========================================
 st.set_page_config(
-    page_title="Streamsong Booking Dashboard",
-    page_icon="assets/ssr-logo-notag.png",
+    page_title="Royal Dornoch Booking Dashboard",
+    page_icon=LOGO_PATH if LOGO_AVAILABLE else "\u26f3",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # ========================================
-# STYLING - STREAMSONG BRAND
+# STYLING - ROYAL DORNOCH BRAND
 # ========================================
 st.markdown(get_dashboard_css(), unsafe_allow_html=True)
 
@@ -110,13 +137,13 @@ if st.session_state.show_password_change:
             max-width: 500px;
             margin: 100px auto;
             padding: 2.5rem;
-            background: linear-gradient(135deg, #3d5266 0%, #5a6f85 100%);
+            background: linear-gradient(135deg, #2B4048 0%, #5a6f85 100%);
             border-radius: 16px;
             border: 1px solid rgba(107, 124, 63, 0.3);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
         }
         .password-title {
-            color: #f7f5f2;
+            color: #F6F3EC;
             font-size: 1.8rem;
             font-weight: 700;
             text-align: center;
@@ -186,7 +213,7 @@ if not st.session_state.authenticated:
             margin-bottom: 2rem;
         }
         .login-subtitle {
-            color: #d4b896;
+            color: #E0D5BE;
             text-align: center;
             margin-bottom: 3rem;
             font-size: 1.1rem;
@@ -199,7 +226,7 @@ if not st.session_state.authenticated:
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
         st.markdown("<div class='login-logo-container'>", unsafe_allow_html=True)
-        st.image("assets/ssr-logo-notag.png", use_column_width=True)
+        render_logo(use_column_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("""
@@ -251,25 +278,25 @@ if not st.session_state.authenticated:
 
 with st.sidebar:
     # Small logo in sidebar - stacked vertically
-    st.image("assets/ssr-logo-notag.png", use_column_width=True)
+    render_logo(use_column_width=True)
     st.markdown("""
         <div style='text-align: center; margin-top: 0.5rem;'>
             <p style='color: #e8e3d9; font-size: 0.9rem; margin: 0; font-weight: 600; letter-spacing: 0.5px;'>Booking Dashboard</p>
         </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("<div style='height: 1px; background: #6b7c3f; margin: 1rem 0 1.5rem 0;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 1px; background: #6B7F4E; margin: 1rem 0 1.5rem 0;'></div>", unsafe_allow_html=True)
 
     st.markdown(f"<div class='user-badge'>{st.session_state.full_name}</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='club-badge'>{st.session_state.customer_id.title()}</div>", unsafe_allow_html=True)
 
-    st.markdown("<div style='height: 1px; background: #6b7c3f; margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 1px; background: #6B7F4E; margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
 
     if st.button("Logout", use_container_width=True):
         logout()
         st.rerun()
 
-    st.markdown("<div style='height: 1px; background: #6b7c3f; margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 1px; background: #6B7F4E; margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
 
     # Navigation
     if 'current_page' not in st.session_state:
@@ -287,7 +314,7 @@ with st.sidebar:
     # Get the current page from session state
     page = st.session_state.current_page
 
-    st.markdown("<div style='height: 1px; background: #6b7c3f; margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 1px; background: #6B7F4E; margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
 
     st.markdown("#### Filters")
 
@@ -353,7 +380,7 @@ with st.sidebar:
         st.rerun()
 
 st.markdown("""
-    <h1 style='margin-bottom: 1rem;'>Streamsong Dashboard</h1>
+    <h1 style='margin-bottom: 1rem;'>Royal Dornoch Dashboard</h1>
 """, unsafe_allow_html=True)
 
 # Render page based on navigation selection
@@ -363,7 +390,7 @@ if page == "Bookings":
     with header_col1:
         st.markdown("""
             <h2 style='margin-bottom: 0.5rem;'>Booking Requests</h2>
-            <p style='color: #d4b896; margin-bottom: 1rem; font-size: 0.9375rem;'>Manage and track all incoming tee time requests</p>
+            <p style='color: #E0D5BE; margin-bottom: 1rem; font-size: 0.9375rem;'>Manage and track all incoming tee time requests</p>
         """, unsafe_allow_html=True)
     with header_col2:
         if st.button("🔄 Refresh", key="refresh_bookings", use_container_width=True, help="Refresh booking data"):
@@ -387,9 +414,9 @@ if page == "Bookings":
     # Show active filter indicator
     if st.session_state.clicked_status_filter:
         st.markdown(f"""
-            <div style='background: #3d5266; border: 2px solid #6b7c3f; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between;'>
+            <div style='background: #2B4048; border: 2px solid #6B7F4E; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between;'>
                 <div style='display: flex; align-items: center; gap: 0.5rem;'>
-                    <span style='color: #6b7c3f; font-weight: 600; font-size: 1rem;'>Filtering by: {st.session_state.clicked_status_filter}</span>
+                    <span style='color: #6B7F4E; font-weight: 600; font-size: 1rem;'>Filtering by: {st.session_state.clicked_status_filter}</span>
                 </div>
             </div>
         """, unsafe_allow_html=True)
@@ -456,7 +483,7 @@ if page == "Bookings":
             st.session_state.clicked_status_filter = "Inquiry"
             st.cache_data.clear()
             st.rerun()
-        st.markdown(f"<div style='text-align: center; color: #d4b896; font-size: 0.75rem; margin-top: -0.5rem;'>Showing: {inquiry_count}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align: center; color: #E0D5BE; font-size: 0.75rem; margin-top: -0.5rem;'>Showing: {inquiry_count}</div>", unsafe_allow_html=True)
     
     with col2:
         requested_count = len(filtered_df[filtered_df['status'] == 'Requested'])
@@ -464,7 +491,7 @@ if page == "Bookings":
             st.session_state.clicked_status_filter = "Requested"
             st.cache_data.clear()
             st.rerun()
-        st.markdown(f"<div style='text-align: center; color: #d4b896; font-size: 0.75rem; margin-top: -0.5rem;'>Showing: {requested_count}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align: center; color: #E0D5BE; font-size: 0.75rem; margin-top: -0.5rem;'>Showing: {requested_count}</div>", unsafe_allow_html=True)
     
     with col3:
         confirmed_count = len(filtered_df[filtered_df['status'] == 'Confirmed'])
@@ -472,7 +499,7 @@ if page == "Bookings":
             st.session_state.clicked_status_filter = "Confirmed"
             st.cache_data.clear()
             st.rerun()
-        st.markdown(f"<div style='text-align: center; color: #d4b896; font-size: 0.75rem; margin-top: -0.5rem;'>Showing: {confirmed_count}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align: center; color: #E0D5BE; font-size: 0.75rem; margin-top: -0.5rem;'>Showing: {confirmed_count}</div>", unsafe_allow_html=True)
     
     with col4:
         booked_count = len(filtered_df[filtered_df['status'] == 'Booked'])
@@ -480,9 +507,9 @@ if page == "Bookings":
             st.session_state.clicked_status_filter = "Booked"
             st.cache_data.clear()
             st.rerun()
-        st.markdown(f"<div style='text-align: center; color: #d4b896; font-size: 0.75rem; margin-top: -0.5rem;'>Showing: {booked_count}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align: center; color: #E0D5BE; font-size: 0.75rem; margin-top: -0.5rem;'>Showing: {booked_count}</div>", unsafe_allow_html=True)
     
-    st.markdown("<div style='height: 2px; background: #6b7c3f; margin: 2rem 0;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 2px; background: #6B7F4E; margin: 2rem 0;'></div>", unsafe_allow_html=True)
     
     # Format date range string
     if date_range:
@@ -528,10 +555,10 @@ if page == "Bookings":
             current_status = 'Inquiry'
     
         stages = [
-            {'name': 'Inquiry', 'color': '#87a7b3'},
-            {'name': 'Requested', 'color': '#cc8855'},
-            {'name': 'Confirmed', 'color': '#8b9456'},
-            {'name': 'Booked', 'color': '#6b7c3f'}
+            {'name': 'Inquiry', 'color': '#4C7A93'},
+            {'name': 'Requested', 'color': '#E8B31C'},
+            {'name': 'Confirmed', 'color': '#C6A96A'},
+            {'name': 'Booked', 'color': '#6B7F4E'}
         ]
     
         is_rejected = current_status == 'Rejected'
@@ -545,23 +572,23 @@ if page == "Bookings":
         with st.container():
             # Build progress bar HTML inline
             if is_rejected or is_cancelled:
-                status_color = '#a0653f' if is_rejected else '#666666'
-                progress_html = f"<div style='background: #3d5266; padding: 1rem; border-radius: 8px; border: 2px solid #6b7c3f;'><div style='display: flex; align-items: center; justify-content: center; gap: 0.75rem;'><div style='width: 12px; height: 12px; border-radius: 50%; background: {status_color};'></div><span style='color: {status_color}; font-weight: 700; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.5px;'>{current_status}</span></div></div>"
+                status_color = '#6B7F4E' if is_rejected else '#8E8C85'
+                progress_html = f"<div style='background: #2B4048; padding: 1rem; border-radius: 8px; border: 2px solid #6B7F4E;'><div style='display: flex; align-items: center; justify-content: center; gap: 0.75rem;'><div style='width: 12px; height: 12px; border-radius: 50%; background: {status_color};'></div><span style='color: {status_color}; font-weight: 700; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.5px;'>{current_status}</span></div></div>"
             else:
                 # Build stage nodes HTML
                 stages_html = ""
                 for i, stage in enumerate(stages):
                     is_active = i <= current_index
                     is_current = i == current_index
-                    bg_color = stage['color'] if is_active else '#4a6278'
-                    text_color = '#f7f5f2' if is_active else '#999999'
-                    border_color = stage['color'] if is_current else ('#6b7c3f' if is_active else '#4a6278')
+                    bg_color = stage['color'] if is_active else '#4C7A93'
+                    text_color = '#F6F3EC' if is_active else '#999999'
+                    border_color = stage['color'] if is_current else ('#6B7F4E' if is_active else '#4C7A93')
                     box_shadow = '0 0 0 4px rgba(107, 124, 63, 0.4)' if is_current else 'none'
                     font_weight = '700' if is_current else '600'
     
                     stages_html += f"<div style='display: flex; flex-direction: column; align-items: center; z-index: 3; position: relative;'><div style='width: 1.5rem; height: 1.5rem; border-radius: 50%; background: {bg_color}; border: 3px solid {border_color}; box-shadow: {box_shadow}; transition: all 0.3s ease;'></div><div style='margin-top: 0.5rem; font-size: 0.7rem; font-weight: {font_weight}; color: {text_color}; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;'>{stage['name']}</div></div>"
     
-                progress_html = f"<div style='background: #3d5266; padding: 1.25rem; border-radius: 8px; border: 2px solid #6b7c3f;'><div style='display: flex; align-items: center; justify-content: space-between; position: relative;'><div style='position: absolute; top: 0.75rem; left: 2rem; right: 2rem; height: 3px; background: #4a6278; z-index: 1;'></div><div style='position: absolute; top: 0.75rem; left: 2rem; width: calc({progress_width}% - 2rem); height: 3px; background: linear-gradient(90deg, #87a7b3, #6b7c3f); z-index: 2;'></div>{stages_html}</div></div>"
+                progress_html = f"<div style='background: #2B4048; padding: 1.25rem; border-radius: 8px; border: 2px solid #6B7F4E;'><div style='display: flex; align-items: center; justify-content: space-between; position: relative;'><div style='position: absolute; top: 0.75rem; left: 2rem; right: 2rem; height: 3px; background: #4C7A93; z-index: 1;'></div><div style='position: absolute; top: 0.75rem; left: 2rem; width: calc({progress_width}% - 2rem); height: 3px; background: linear-gradient(90deg, #4C7A93, #6B7F4E); z-index: 2;'></div>{stages_html}</div></div>"
     
             # Hotel requirement badge and compact details
             hotel_required = booking.get('hotel_required', False)
@@ -569,7 +596,7 @@ if page == "Bookings":
             hotel_details_html = ""
 
             if hotel_required:
-                hotel_badge = "<div style='display: inline-block; background: #cc8855; color: #ffffff; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 0.5rem;'>Hotel Required</div>"
+                hotel_badge = "<div style='display: inline-block; background: #E8B31C; color: #ffffff; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 0.5rem;'>Hotel Required</div>"
 
                 # Format hotel dates and info
                 hotel_checkin = booking.get('hotel_checkin')
@@ -594,7 +621,7 @@ if page == "Bookings":
                 hotel_cols = []
 
                 # Dates column
-                hotel_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>CHECK-IN/OUT</div><div style='font-size: 0.9rem; font-weight: 600; color: #f7f5f2;'>{checkin_str} - {checkout_str}</div></div>")
+                hotel_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>CHECK-IN/OUT</div><div style='font-size: 0.9rem; font-weight: 600; color: #F6F3EC;'>{checkin_str} - {checkout_str}</div></div>")
 
                 # Nights/Rooms column
                 nights_rooms = []
@@ -603,16 +630,16 @@ if page == "Bookings":
                 if lodging_rooms and not pd.isna(lodging_rooms):
                     nights_rooms.append(f"{int(lodging_rooms)}R")
                 if nights_rooms:
-                    hotel_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>NIGHTS/ROOMS</div><div style='font-size: 0.9rem; font-weight: 600; color: #f7f5f2;'>{' • '.join(nights_rooms)}</div></div>")
+                    hotel_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>NIGHTS/ROOMS</div><div style='font-size: 0.9rem; font-weight: 600; color: #F6F3EC;'>{' • '.join(nights_rooms)}</div></div>")
 
                 # Room type column
                 if lodging_room_type and not pd.isna(lodging_room_type) and str(lodging_room_type).strip():
                     room_type_display = str(lodging_room_type).replace('_', ' ').title()
-                    hotel_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>ROOM TYPE</div><div style='font-size: 0.9rem; font-weight: 600; color: #f7f5f2;'>{html.escape(room_type_display)}</div></div>")
+                    hotel_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>ROOM TYPE</div><div style='font-size: 0.9rem; font-weight: 600; color: #F6F3EC;'>{html.escape(room_type_display)}</div></div>")
 
                 # Lodging cost column
                 if lodging_cost and not pd.isna(lodging_cost) and float(lodging_cost) > 0:
-                    hotel_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>LODGING COST</div><div style='font-size: 1.25rem; font-weight: 700; color: #cc8855;'>${float(lodging_cost):,.2f}</div></div>")
+                    hotel_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>LODGING COST</div><div style='font-size: 1.25rem; font-weight: 700; color: #E8B31C;'>{CURRENCY_SYMBOL}{float(lodging_cost):,.2f}</div></div>")
 
                 # Build the grid
                 num_cols = len(hotel_cols)
@@ -624,9 +651,9 @@ if page == "Bookings":
                     if lodging_preferences and not pd.isna(lodging_preferences) and str(lodging_preferences).strip():
                         prefs_list = str(lodging_preferences).split(';')
                         prefs_text = " • ".join([html.escape(pref.strip()) for pref in prefs_list if pref.strip()])
-                        prefs_section = f"<div style='margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid rgba(107, 124, 63, 0.2);'><div class='data-label' style='margin-bottom: 0.25rem;'>SPECIAL REQUESTS</div><div style='font-size: 0.85rem; color: #d4b896; line-height: 1.4;'>{prefs_text}</div></div>"
+                        prefs_section = f"<div style='margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid rgba(107, 124, 63, 0.2);'><div class='data-label' style='margin-bottom: 0.25rem;'>SPECIAL REQUESTS</div><div style='font-size: 0.85rem; color: #E0D5BE; line-height: 1.4;'>{prefs_text}</div></div>"
 
-                    hotel_details_html = f"<div style='margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(107, 124, 63, 0.3);'><div style='color: #cc8855; font-weight: 700; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;'>🏨 LODGING</div>{hotel_grid}{prefs_section}</div>"
+                    hotel_details_html = f"<div style='margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(107, 124, 63, 0.3);'><div style='color: #E8B31C; font-weight: 700; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;'>🏨 LODGING</div>{hotel_grid}{prefs_section}</div>"
 
             # Parse and display selected_tee_times in the existing blue section
             selected_tee_times = booking.get('selected_tee_times', None)
@@ -661,33 +688,33 @@ if page == "Bookings":
                         # Calculate cost display - multiply by number of players for group total
                         if round_cost_per_player is not None and round_cost_per_player > 0:
                             round_total = float(round_cost_per_player) * int(round_players)
-                            cost_display = f"${round_total:,.2f}"
+                            cost_display = f"{CURRENCY_SYMBOL}{round_total:,.2f}"
                             total_golf_cost += round_total
                         elif len(selected_tee_times) == 1:
                             # Single round - use booking total
-                            cost_display = f"${float(booking['total']):,.2f}"
+                            cost_display = f"{CURRENCY_SYMBOL}{float(booking['total']):,.2f}"
                             total_golf_cost = float(booking['total'])
                         else:
                             # Multi-round - divide total evenly
                             per_round = float(booking['total']) / len(selected_tee_times)
-                            cost_display = f"${per_round:,.2f}"
+                            cost_display = f"{CURRENCY_SYMBOL}{per_round:,.2f}"
                             total_golf_cost += per_round
 
                         # Round header (only for multi-round bookings)
                         round_header = ""
                         if len(selected_tee_times) > 1:
-                            round_header = f"<div style='grid-column: 1 / -1; color: #6b7c3f; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(107, 124, 63, 0.3);'>⛳ Round {i + 1}</div>"
+                            round_header = f"<div style='grid-column: 1 / -1; color: #6B7F4E; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(107, 124, 63, 0.3);'>⛳ Round {i + 1}</div>"
 
                         # Build columns
                         cols = []
-                        cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>TEE DATE</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{html.escape(str(round_date))}</div></div>")
-                        cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>TEE TIME</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{html.escape(str(round_time))}</div></div>")
+                        cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>TEE DATE</div><div style='font-size: 1rem; font-weight: 600; color: #F6F3EC;'>{html.escape(str(round_date))}</div></div>")
+                        cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>TEE TIME</div><div style='font-size: 1rem; font-weight: 600; color: #F6F3EC;'>{html.escape(str(round_time))}</div></div>")
 
                         if round_course:
-                            cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>COURSE</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{html.escape(str(round_course))}</div></div>")
+                            cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>COURSE</div><div style='font-size: 1rem; font-weight: 600; color: #F6F3EC;'>{html.escape(str(round_course))}</div></div>")
 
-                        cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>PLAYERS</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{int(round_players)}</div></div>")
-                        cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>ROUND COST</div><div style='font-size: 1.5rem; font-weight: 700; color: #6b7c3f;'>{cost_display}</div></div>")
+                        cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>PLAYERS</div><div style='font-size: 1rem; font-weight: 600; color: #F6F3EC;'>{int(round_players)}</div></div>")
+                        cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>ROUND COST</div><div style='font-size: 1.5rem; font-weight: 700; color: #6B7F4E;'>{cost_display}</div></div>")
 
                         # Build grid
                         grid_template = f"repeat({len(cols)}, 1fr)"
@@ -718,38 +745,38 @@ if page == "Bookings":
                         resort_fee_total = float(booking_resort_fee_total)
 
                     summary_cols = []
-                    summary_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>TOTAL GOLF COST</div><div style='font-size: 1.5rem; font-weight: 700; color: #6b7c3f;'>${total_golf_cost:,.2f}</div></div>")
+                    summary_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>TOTAL GOLF COST</div><div style='font-size: 1.5rem; font-weight: 700; color: #6B7F4E;'>{CURRENCY_SYMBOL}{total_golf_cost:,.2f}</div></div>")
 
                     if lodging_cost and not pd.isna(lodging_cost) and float(lodging_cost) > 0:
-                        summary_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>TOTAL LODGING COST</div><div style='font-size: 1.5rem; font-weight: 700; color: #cc8855;'>${float(lodging_cost):,.2f}</div></div>")
+                        summary_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>TOTAL LODGING COST</div><div style='font-size: 1.5rem; font-weight: 700; color: #E8B31C;'>{CURRENCY_SYMBOL}{float(lodging_cost):,.2f}</div></div>")
                         grand_total = total_golf_cost + float(lodging_cost)
                     else:
                         grand_total = total_golf_cost
 
                     # Add resort fees to summary if applicable
                     if resort_fee_total > 0:
-                        summary_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>RESORT FEES</div><div style='font-size: 1.5rem; font-weight: 700; color: #87a7b3;'>${resort_fee_total:,.2f}</div></div>")
+                        summary_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>RESORT FEES</div><div style='font-size: 1.5rem; font-weight: 700; color: #4C7A93;'>{CURRENCY_SYMBOL}{resort_fee_total:,.2f}</div></div>")
                         grand_total += resort_fee_total
 
-                    summary_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>GRAND TOTAL</div><div style='font-size: 1.75rem; font-weight: 700; color: #f7f5f2;'>${grand_total:,.2f}</div></div>")
+                    summary_cols.append(f"<div><div class='data-label' style='margin-bottom: 0.5rem;'>GRAND TOTAL</div><div style='font-size: 1.75rem; font-weight: 700; color: #F6F3EC;'>{CURRENCY_SYMBOL}{grand_total:,.2f}</div></div>")
 
                     summary_grid = f"repeat({len(summary_cols)}, 1fr)"
-                    summary_html = f"<div style='margin-top: 1rem; padding-top: 1rem; border-top: 2px solid #6b7c3f;'><div style='display: grid; grid-template-columns: {summary_grid}; gap: 1.5rem;'>{''.join(summary_cols)}</div></div>"
+                    summary_html = f"<div style='margin-top: 1rem; padding-top: 1rem; border-top: 2px solid #6B7F4E;'><div style='display: grid; grid-template-columns: {summary_grid}; gap: 1.5rem;'>{''.join(summary_cols)}</div></div>"
 
                     tee_times_section_html = tee_times_rows + summary_html
 
                 except Exception as e:
                     # Fallback to basic display on any error
-                    tee_times_section_html = f"<div style='display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 1rem;'><div><div class='data-label' style='margin-bottom: 0.5rem;'>TEE DATE</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{booking['date'].strftime('%b %d, %Y')}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>TEE TIME</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{tee_time_display}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>PLAYERS</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{booking['players']}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>TOTAL</div><div style='font-size: 1.5rem; font-weight: 700; color: #6b7c3f;'>${float(booking['total']):,.2f}</div></div></div>"
+                    tee_times_section_html = f"<div style='display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 1rem;'><div><div class='data-label' style='margin-bottom: 0.5rem;'>TEE DATE</div><div style='font-size: 1rem; font-weight: 600; color: #F6F3EC;'>{booking['date'].strftime('%b %d, %Y')}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>TEE TIME</div><div style='font-size: 1rem; font-weight: 600; color: #F6F3EC;'>{tee_time_display}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>PLAYERS</div><div style='font-size: 1rem; font-weight: 600; color: #F6F3EC;'>{booking['players']}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>TOTAL</div><div style='font-size: 1.5rem; font-weight: 700; color: #6B7F4E;'>{CURRENCY_SYMBOL}{float(booking['total']):,.2f}</div></div></div>"
             else:
                 # Basic display for non-Requested status or no tee times data
-                tee_times_section_html = f"<div style='display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 1rem;'><div><div class='data-label' style='margin-bottom: 0.5rem;'>TEE DATE</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{booking['date'].strftime('%b %d, %Y')}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>TEE TIME</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{tee_time_display}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>PLAYERS</div><div style='font-size: 1rem; font-weight: 600; color: #f7f5f2;'>{booking['players']}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>TOTAL</div><div style='font-size: 1.5rem; font-weight: 700; color: #6b7c3f;'>${booking['total']:,.2f}</div></div></div>"
+                tee_times_section_html = f"<div style='display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 1rem;'><div><div class='data-label' style='margin-bottom: 0.5rem;'>TEE DATE</div><div style='font-size: 1rem; font-weight: 600; color: #F6F3EC;'>{booking['date'].strftime('%b %d, %Y')}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>TEE TIME</div><div style='font-size: 1rem; font-weight: 600; color: #F6F3EC;'>{tee_time_display}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>PLAYERS</div><div style='font-size: 1rem; font-weight: 600; color: #F6F3EC;'>{booking['players']}</div></div><div><div class='data-label' style='margin-bottom: 0.5rem;'>TOTAL</div><div style='font-size: 1.5rem; font-weight: 700; color: #6B7F4E;'>{CURRENCY_SYMBOL}{booking['total']:,.2f}</div></div></div>"
 
             # Escape and format note content for display
             note_display = html.escape(note_content).replace('\n', '<br>')
 
             # Build complete card HTML (without notes - notes will be in expander below)
-            card_html = f"<div class='booking-card' style='background: linear-gradient(135deg, #3d5266 0%, #4a6278 100%); border: 2px solid #6b7c3f; border-radius: 12px; padding: 1.5rem; margin-bottom: 0.5rem; box-shadow: 0 4px 16px rgba(107, 124, 63, 0.3); transition: all 0.3s ease;'><div style='display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem;'><div style='flex: 1;'><div style='display: flex; align-items: center;'><div class='booking-id' style='margin-bottom: 0.5rem;'>{html.escape(str(booking['booking_id']))}</div>{hotel_badge}</div><div class='booking-email'>{html.escape(str(booking['guest_email']))}</div></div><div style='text-align: right;'><div class='timestamp'>REQUESTED</div><div class='timestamp-value'>{requested_time}</div></div></div><div style='margin-bottom: 1.5rem;'>{progress_html}</div><div style='height: 1px; background: linear-gradient(90deg, transparent, #6b7c3f, transparent); margin: 1.5rem 0;'></div>{tee_times_section_html}{hotel_details_html}</div>"
+            card_html = f"<div class='booking-card' style='background: linear-gradient(135deg, #2B4048 0%, #4C7A93 100%); border: 2px solid #6B7F4E; border-radius: 12px; padding: 1.5rem; margin-bottom: 0.5rem; box-shadow: 0 4px 16px rgba(107, 124, 63, 0.3); transition: all 0.3s ease;'><div style='display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem;'><div style='flex: 1;'><div style='display: flex; align-items: center;'><div class='booking-id' style='margin-bottom: 0.5rem;'>{html.escape(str(booking['booking_id']))}</div>{hotel_badge}</div><div class='booking-email'>{html.escape(str(booking['guest_email']))}</div></div><div style='text-align: right;'><div class='timestamp'>REQUESTED</div><div class='timestamp-value'>{requested_time}</div></div></div><div style='margin-bottom: 1.5rem;'>{progress_html}</div><div style='height: 1px; background: linear-gradient(90deg, transparent, #6B7F4E, transparent); margin: 1.5rem 0;'></div>{tee_times_section_html}{hotel_details_html}</div>"
 
             # Render the complete card
             st.markdown(card_html, unsafe_allow_html=True)
@@ -758,8 +785,8 @@ if page == "Bookings":
             with st.expander("📝 View/Edit Booking Notes & Email Content", expanded=False):
                 # Display current notes
                 st.markdown("""
-                    <div style='background: #4a6278; padding: 0.75rem 1rem; border-radius: 8px 8px 0 0; border: 2px solid #6b7c3f; border-bottom: none; margin-bottom: 0;'>
-                        <div style='color: #d4b896; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 0;'>Current Notes</div>
+                    <div style='background: #4C7A93; padding: 0.75rem 1rem; border-radius: 8px 8px 0 0; border: 2px solid #6B7F4E; border-bottom: none; margin-bottom: 0;'>
+                        <div style='color: #E0D5BE; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 0;'>Current Notes</div>
                     </div>
                 """, unsafe_allow_html=True)
 
@@ -786,9 +813,9 @@ if page == "Bookings":
                 # Show last updated info if available
                 if booking.get('updated_by') and not pd.isna(booking.get('updated_by')):
                     st.markdown(f"""
-                        <div style='margin-top: 1rem; padding: 0.75rem; background: #3d5266; border-radius: 8px; border: 2px solid #6b7c3f;'>
-                            <div style='color: #d4b896; font-size: 0.7rem; font-weight: 600; text-transform: uppercase;'>Last Updated</div>
-                            <div style='color: #f7f5f2; font-size: 0.875rem; margin-top: 0.25rem;'>{booking['updated_at'].strftime('%b %d, %Y • %I:%M %p')} by {booking['updated_by']}</div>
+                        <div style='margin-top: 1rem; padding: 0.75rem; background: #2B4048; border-radius: 8px; border: 2px solid #6B7F4E;'>
+                            <div style='color: #E0D5BE; font-size: 0.7rem; font-weight: 600; text-transform: uppercase;'>Last Updated</div>
+                            <div style='color: #F6F3EC; font-size: 0.875rem; margin-top: 0.25rem;'>{booking['updated_at'].strftime('%b %d, %Y • %I:%M %p')} by {booking['updated_by']}</div>
                         </div>
                     """, unsafe_allow_html=True)
 
@@ -866,7 +893,7 @@ if page == "Bookings":
 
     # End of booking cards loop
 
-    st.markdown("<div style='height: 2px; background: #6b7c3f; margin: 2rem 0;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 2px; background: #6B7F4E; margin: 2rem 0;'></div>", unsafe_allow_html=True)
 
     st.markdown("#### Export Options")
     col1, col2, col3, col4 = st.columns(4)
@@ -997,7 +1024,7 @@ elif page == "Reports & Analytics":
             st.markdown(f"""
                 <div style='background: linear-gradient(135deg, #081c3c 0%, #0d2847 100%); border: 2px solid #997424; border-radius: 12px; padding: 1.5rem; text-align: center;'>
                     <div style='color: #997424; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;'>Total Revenue</div>
-                    <div style='color: #10b981; font-size: 2.5rem; font-weight: 700;'>${total_revenue:,.0f}</div>
+                    <div style='color: #10b981; font-size: 2.5rem; font-weight: 700;'>{CURRENCY_SYMBOL}{total_revenue:,.0f}</div>
                 </div>
             """, unsafe_allow_html=True)
 
@@ -1006,7 +1033,7 @@ elif page == "Reports & Analytics":
             st.markdown(f"""
                 <div style='background: linear-gradient(135deg, #081c3c 0%, #0d2847 100%); border: 2px solid #997424; border-radius: 12px; padding: 1.5rem; text-align: center;'>
                     <div style='color: #997424; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;'>Avg Booking Value</div>
-                    <div style='color: #fffefe; font-size: 2.5rem; font-weight: 700;'>${avg_booking_value:,.0f}</div>
+                    <div style='color: #fffefe; font-size: 2.5rem; font-weight: 700;'>{CURRENCY_SYMBOL}{avg_booking_value:,.0f}</div>
                 </div>
             """, unsafe_allow_html=True)
 
@@ -1071,7 +1098,7 @@ elif page == "Reports & Analytics":
                     <div style='background: #0d2847; border: 2px solid #997424; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem;'>
                         <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;'>
                             <div style='color: #fffefe; font-weight: 600; font-size: 1rem;'>{status}</div>
-                            <div style='color: #10b981; font-weight: 700; font-size: 1.125rem;'>${revenue:,.0f}</div>
+                            <div style='color: #10b981; font-weight: 700; font-size: 1.125rem;'>{CURRENCY_SYMBOL}{revenue:,.0f}</div>
                         </div>
                         <div style='background: #081c3c; border-radius: 4px; height: 8px; overflow: hidden;'>
                             <div style='background: linear-gradient(90deg, #10b981, #997424); height: 100%; width: {bar_width}%;'></div>
@@ -1113,7 +1140,7 @@ elif page == "Reports & Analytics":
                                 <span style='color: #fffefe; font-weight: 600; font-size: 0.75rem;'>{int(row['Bookings'])}</span>
                             </div>
                         </div>
-                        <div style='color: #10b981; font-weight: 700; min-width: 80px; text-align: right; font-size: 0.875rem;'>${row['Revenue']:,.0f}</div>
+                        <div style='color: #10b981; font-weight: 700; min-width: 80px; text-align: right; font-size: 0.875rem;'>{CURRENCY_SYMBOL}{row['Revenue']:,.0f}</div>
                     </div>
                 """, unsafe_allow_html=True)
         else:
@@ -1214,7 +1241,7 @@ elif page == "Reports & Analytics":
 
         with hotel_metric_col1:
             st.markdown(f"""
-                <div style='background: linear-gradient(135deg, #cc8855 0%, #a86d44 100%); border: 2px solid #fffefe; border-radius: 12px; padding: 1.5rem; text-align: center;'>
+                <div style='background: linear-gradient(135deg, #E8B31C 0%, #a86d44 100%); border: 2px solid #fffefe; border-radius: 12px; padding: 1.5rem; text-align: center;'>
                     <div style='color: #fffefe; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;'>Hotel Bookings</div>
                     <div style='color: #fffefe; font-size: 2.5rem; font-weight: 700;'>{total_hotel_bookings}</div>
                     <div style='color: rgba(255,254,254,0.8); font-size: 0.75rem; margin-top: 0.5rem;'>{hotel_attachment_rate:.1f}% of all bookings</div>
@@ -1223,16 +1250,16 @@ elif page == "Reports & Analytics":
 
         with hotel_metric_col2:
             st.markdown(f"""
-                <div style='background: linear-gradient(135deg, #cc8855 0%, #a86d44 100%); border: 2px solid #fffefe; border-radius: 12px; padding: 1.5rem; text-align: center;'>
+                <div style='background: linear-gradient(135deg, #E8B31C 0%, #a86d44 100%); border: 2px solid #fffefe; border-radius: 12px; padding: 1.5rem; text-align: center;'>
                     <div style='color: #fffefe; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;'>Hotel Revenue</div>
-                    <div style='color: #10b981; font-size: 2.5rem; font-weight: 700;'>${total_hotel_revenue:,.0f}</div>
-                    <div style='color: rgba(255,254,254,0.8); font-size: 0.75rem; margin-top: 0.5rem;'>Avg: ${avg_lodging_cost:,.0f}</div>
+                    <div style='color: #10b981; font-size: 2.5rem; font-weight: 700;'>{CURRENCY_SYMBOL}{total_hotel_revenue:,.0f}</div>
+                    <div style='color: rgba(255,254,254,0.8); font-size: 0.75rem; margin-top: 0.5rem;'>Avg: {CURRENCY_SYMBOL}{avg_lodging_cost:,.0f}</div>
                 </div>
             """, unsafe_allow_html=True)
 
         with hotel_metric_col3:
             st.markdown(f"""
-                <div style='background: linear-gradient(135deg, #cc8855 0%, #a86d44 100%); border: 2px solid #fffefe; border-radius: 12px; padding: 1.5rem; text-align: center;'>
+                <div style='background: linear-gradient(135deg, #E8B31C 0%, #a86d44 100%); border: 2px solid #fffefe; border-radius: 12px; padding: 1.5rem; text-align: center;'>
                     <div style='color: #fffefe; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;'>Avg Nights</div>
                     <div style='color: #fffefe; font-size: 2.5rem; font-weight: 700;'>{avg_nights:.1f}</div>
                     <div style='color: rgba(255,254,254,0.8); font-size: 0.75rem; margin-top: 0.5rem;'>Total: {int(total_room_nights)} nights</div>
@@ -1241,7 +1268,7 @@ elif page == "Reports & Analytics":
 
         with hotel_metric_col4:
             st.markdown(f"""
-                <div style='background: linear-gradient(135deg, #cc8855 0%, #a86d44 100%); border: 2px solid #fffefe; border-radius: 12px; padding: 1.5rem; text-align: center;'>
+                <div style='background: linear-gradient(135deg, #E8B31C 0%, #a86d44 100%); border: 2px solid #fffefe; border-radius: 12px; padding: 1.5rem; text-align: center;'>
                     <div style='color: #fffefe; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;'>Avg Rooms</div>
                     <div style='color: #fffefe; font-size: 2.5rem; font-weight: 700;'>{avg_rooms:.1f}</div>
                     <div style='color: rgba(255,254,254,0.8); font-size: 0.75rem; margin-top: 0.5rem;'>per booking</div>
@@ -1266,7 +1293,7 @@ elif page == "Reports & Analytics":
                 <div style='background: #0d2847; border: 2px solid #997424; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem;'>
                     <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;'>
                         <div style='color: #fffefe; font-weight: 600; font-size: 1rem;'>⛳ Golf Revenue</div>
-                        <div style='color: #10b981; font-weight: 700; font-size: 1.125rem;'>${hotel_golf_revenue:,.0f}</div>
+                        <div style='color: #10b981; font-weight: 700; font-size: 1.125rem;'>{CURRENCY_SYMBOL}{hotel_golf_revenue:,.0f}</div>
                     </div>
                     <div style='background: #081c3c; border-radius: 4px; height: 8px; overflow: hidden;'>
                         <div style='background: linear-gradient(90deg, #997424, #10b981); height: 100%; width: {golf_revenue_percentage}%;'></div>
@@ -1277,13 +1304,13 @@ elif page == "Reports & Analytics":
 
             # Hotel revenue bar
             st.markdown(f"""
-                <div style='background: #0d2847; border: 2px solid #cc8855; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem;'>
+                <div style='background: #0d2847; border: 2px solid #E8B31C; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem;'>
                     <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;'>
                         <div style='color: #fffefe; font-weight: 600; font-size: 1rem;'>🏨 Hotel Revenue</div>
-                        <div style='color: #cc8855; font-weight: 700; font-size: 1.125rem;'>${total_hotel_revenue:,.0f}</div>
+                        <div style='color: #E8B31C; font-weight: 700; font-size: 1.125rem;'>{CURRENCY_SYMBOL}{total_hotel_revenue:,.0f}</div>
                     </div>
                     <div style='background: #081c3c; border-radius: 4px; height: 8px; overflow: hidden;'>
-                        <div style='background: linear-gradient(90deg, #cc8855, #a86d44); height: 100%; width: {hotel_revenue_percentage}%;'></div>
+                        <div style='background: linear-gradient(90deg, #E8B31C, #a86d44); height: 100%; width: {hotel_revenue_percentage}%;'></div>
                     </div>
                     <div style='color: #64748b; font-size: 0.75rem; margin-top: 0.25rem;'>{hotel_revenue_percentage:.1f}% of package revenue</div>
                 </div>
@@ -1293,7 +1320,7 @@ elif page == "Reports & Analytics":
             st.markdown(f"""
                 <div style='background: linear-gradient(135deg, #3a5a40 0%, #2d4a32 100%); border: 2px solid #10b981; border-radius: 8px; padding: 1rem; text-align: center;'>
                     <div style='color: rgba(255,255,255,0.8); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;'>Total Package Revenue</div>
-                    <div style='color: #10b981; font-size: 2rem; font-weight: 700;'>${total_package_revenue:,.0f}</div>
+                    <div style='color: #10b981; font-size: 2rem; font-weight: 700;'>{CURRENCY_SYMBOL}{total_package_revenue:,.0f}</div>
                 </div>
             """, unsafe_allow_html=True)
 
@@ -1312,13 +1339,13 @@ elif page == "Reports & Analytics":
                     percentage = (count / len(hotel_with_room_type) * 100)
 
                     st.markdown(f"""
-                        <div style='background: #0d2847; border: 1px solid #cc8855; border-radius: 6px; padding: 0.75rem; margin-bottom: 0.5rem;'>
+                        <div style='background: #0d2847; border: 1px solid #E8B31C; border-radius: 6px; padding: 0.75rem; margin-bottom: 0.5rem;'>
                             <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;'>
                                 <div style='color: #fffefe; font-weight: 600; font-size: 0.875rem;'>{room_type}</div>
-                                <div style='color: #cc8855; font-weight: 700;'>{int(count)}</div>
+                                <div style='color: #E8B31C; font-weight: 700;'>{int(count)}</div>
                             </div>
                             <div style='background: #081c3c; border-radius: 3px; height: 6px; overflow: hidden;'>
-                                <div style='background: linear-gradient(90deg, #cc8855, #a86d44); height: 100%; width: {bar_width}%;'></div>
+                                <div style='background: linear-gradient(90deg, #E8B31C, #a86d44); height: 100%; width: {bar_width}%;'></div>
                             </div>
                             <div style='color: #64748b; font-size: 0.7rem; margin-top: 0.25rem;'>{percentage:.1f}% of hotel bookings</div>
                         </div>
@@ -1341,7 +1368,7 @@ elif page == "Reports & Analytics":
             # Hotel bookings
             hotel_percentage = (hotel_count / total_count * 100) if total_count > 0 else 0
             st.markdown(f"""
-                <div style='background: linear-gradient(135deg, #cc8855 0%, #a86d44 100%); border: 2px solid #fffefe; border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem;'>
+                <div style='background: linear-gradient(135deg, #E8B31C 0%, #a86d44 100%); border: 2px solid #fffefe; border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem;'>
                     <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;'>
                         <div style='color: #fffefe; font-weight: 700; font-size: 1.125rem;'>🏨 With Hotel</div>
                         <div style='color: #fffefe; font-weight: 700; font-size: 1.5rem;'>{hotel_count}</div>
@@ -1473,7 +1500,7 @@ elif page == "Reports & Analytics":
                     # Summary sheet
                     summary_data = {
                         'Metric': ['Total Bookings', 'Total Revenue', 'Avg Booking Value', 'Total Players'],
-                        'Value': [total_bookings, f"${total_revenue:,.2f}", f"${avg_booking_value:,.2f}", int(total_players)]
+                        'Value': [total_bookings, f"{CURRENCY_SYMBOL}{total_revenue:,.2f}", f"{CURRENCY_SYMBOL}{avg_booking_value:,.2f}", int(total_players)]
                     }
                     pd.DataFrame(summary_data).to_excel(writer, index=False, sheet_name='Summary')
 
@@ -1494,14 +1521,14 @@ elif page == "Reports & Analytics":
                         'Value': [
                             total_hotel_bookings,
                             f"{hotel_attachment_rate:.1f}%",
-                            f"${total_hotel_revenue:,.2f}",
-                            f"${avg_lodging_cost:,.2f}",
+                            f"{CURRENCY_SYMBOL}{total_hotel_revenue:,.2f}",
+                            f"{CURRENCY_SYMBOL}{avg_lodging_cost:,.2f}",
                             f"{avg_nights:.1f}",
                             int(total_room_nights),
                             f"{avg_rooms:.1f}",
-                            f"${total_package_revenue:,.2f}",
-                            f"${hotel_golf_revenue:,.2f}",
-                            f"${total_hotel_revenue:,.2f}"
+                            f"{CURRENCY_SYMBOL}{total_package_revenue:,.2f}",
+                            f"{CURRENCY_SYMBOL}{hotel_golf_revenue:,.2f}",
+                            f"{CURRENCY_SYMBOL}{total_hotel_revenue:,.2f}"
                         ]
                     }
                     pd.DataFrame(hotel_summary_data).to_excel(writer, index=False, sheet_name='Hotel Summary')
@@ -1556,10 +1583,10 @@ elif page == "Reports & Analytics":
                 st.rerun()
 
     # Reports Section (part of Reports & Analytics page)
-    st.markdown("<div style='height: 3px; background: linear-gradient(90deg, #6b7c3f, #997424); margin: 3rem 0;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 3px; background: linear-gradient(90deg, #6B7F4E, #997424); margin: 3rem 0;'></div>", unsafe_allow_html=True)
     st.markdown("""
         <h2 style='margin-bottom: 0.5rem;'>Reports</h2>
-        <p style='color: #d4b896; margin-bottom: 1rem; font-size: 0.9375rem;'>Generate and export detailed reports</p>
+        <p style='color: #E0D5BE; margin-bottom: 1rem; font-size: 0.9375rem;'>Generate and export detailed reports</p>
     """, unsafe_allow_html=True)
 
     # Load data for reports
@@ -1582,7 +1609,7 @@ elif page == "Reports & Analytics":
             (df_reports['date'].dt.date <= report_end)
         ]
 
-        st.markdown("<div style='height: 2px; background: #6b7c3f; margin: 2rem 0;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 2px; background: #6B7F4E; margin: 2rem 0;'></div>", unsafe_allow_html=True)
 
         # Report summary
         st.markdown("### Report Summary")
@@ -1599,9 +1626,9 @@ elif page == "Reports & Analytics":
 
         with summary_col3:
             revenue_in_period = report_df[report_df['status'] == 'Booked']['total'].sum()
-            st.metric("Revenue", f"${revenue_in_period:,.2f}")
+            st.metric("Revenue", f"{CURRENCY_SYMBOL}{revenue_in_period:,.2f}")
 
-        st.markdown("<div style='height: 2px; background: #6b7c3f; margin: 2rem 0;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 2px; background: #6B7F4E; margin: 2rem 0;'></div>", unsafe_allow_html=True)
 
         # Export options
         st.markdown("### Export Report")
@@ -1617,7 +1644,7 @@ elif page == "Reports & Analytics":
                 st.download_button(
                     label="Download Excel Report",
                     data=output.getvalue(),
-                    file_name=f"streamsong_report_{report_start}_{report_end}.xlsx",
+                    file_name=f"dornoch_report_{report_start}_{report_end}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=True
                 )
@@ -1628,13 +1655,13 @@ elif page == "Reports & Analytics":
                 st.download_button(
                     label="Download CSV Report",
                     data=csv,
-                    file_name=f"streamsong_report_{report_start}_{report_end}.csv",
+                    file_name=f"dornoch_report_{report_start}_{report_end}.csv",
                     mime="text/csv",
                     use_container_width=True
                 )
 
         # Data preview
-        st.markdown("<div style='height: 2px; background: #6b7c3f; margin: 2rem 0;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 2px; background: #6B7F4E; margin: 2rem 0;'></div>", unsafe_allow_html=True)
         st.markdown("### Data Preview")
         st.dataframe(report_df[['booking_id', 'guest_email', 'date', 'tee_time', 'players', 'hotel_required', 'total', 'status']], use_container_width=True)
     else:
@@ -1646,7 +1673,7 @@ elif page == "Reports & Analytics":
 elif page == "Waitlist":
     st.markdown("""
         <h2 style='margin-bottom: 0.5rem;'>Waitlist Management</h2>
-        <p style='color: #d4b896; margin-bottom: 1.5rem;'>Manage customer waitlist for tee times</p>
+        <p style='color: #E0D5BE; margin-bottom: 1.5rem;'>Manage customer waitlist for tee times</p>
     """, unsafe_allow_html=True)
 
     # Load waitlist
@@ -1667,7 +1694,7 @@ elif page == "Waitlist":
                     ["Flexible", "Morning Only", "Afternoon Only", "Specific Time Only"]
                 )
                 players = st.number_input("Number of Players", min_value=1, max_value=4, value=1)
-                golf_course = st.text_input("Golf Course", value="Streamsong Resort")
+                golf_course = st.text_input("Golf Course", value="Royal Dornoch Golf Club")
                 priority = st.slider("Priority (1=Low, 10=High)", min_value=1, max_value=10, value=5)
 
             notes = st.text_area("Notes", placeholder="Additional information about this waitlist entry")
@@ -1687,7 +1714,7 @@ elif page == "Waitlist":
                         st.cache_data.clear()
                         st.rerun()
 
-    st.markdown("<div style='height: 2px; background: #6b7c3f; margin: 2rem 0;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 2px; background: #6B7F4E; margin: 2rem 0;'></div>", unsafe_allow_html=True)
 
     # Display waitlist entries
     if waitlist_df.empty:
@@ -1728,11 +1755,11 @@ elif page == "Waitlist":
             }.get(entry['status'], '#94a3b8')
 
             card_html = f"""
-                <div style='background: linear-gradient(135deg, #3d5266 0%, #5a6f85 100%); border: 2px solid {status_color}; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem;'>
+                <div style='background: linear-gradient(135deg, #2B4048 0%, #5a6f85 100%); border: 2px solid {status_color}; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem;'>
                     <div style='display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;'>
                         <div>
-                            <div style='color: #f7f5f2; font-size: 1.125rem; font-weight: 600;'>{entry['waitlist_id']}</div>
-                            <div style='color: #d4b896; font-size: 0.875rem; margin-top: 0.25rem;'>{entry['guest_email']}</div>
+                            <div style='color: #F6F3EC; font-size: 1.125rem; font-weight: 600;'>{entry['waitlist_id']}</div>
+                            <div style='color: #E0D5BE; font-size: 0.875rem; margin-top: 0.25rem;'>{entry['guest_email']}</div>
                             {f"<div style='color: #e8e3d9; font-size: 0.875rem;'>{entry['guest_name']}</div>" if entry.get('guest_name') else ""}
                         </div>
                         <div style='background: {status_color}; color: #ffffff; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; font-size: 0.875rem;'>
@@ -1741,23 +1768,23 @@ elif page == "Waitlist":
                     </div>
                     <div style='display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1rem;'>
                         <div>
-                            <div style='color: #d4b896; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;'>Date</div>
-                            <div style='color: #f7f5f2; font-weight: 600;'>{entry['requested_date'].strftime('%b %d, %Y') if pd.notna(entry['requested_date']) else 'Not Set'}</div>
+                            <div style='color: #E0D5BE; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;'>Date</div>
+                            <div style='color: #F6F3EC; font-weight: 600;'>{entry['requested_date'].strftime('%b %d, %Y') if pd.notna(entry['requested_date']) else 'Not Set'}</div>
                         </div>
                         <div>
-                            <div style='color: #d4b896; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;'>Time</div>
-                            <div style='color: #f7f5f2; font-weight: 600;'>{entry.get('preferred_time', 'Flexible')}</div>
+                            <div style='color: #E0D5BE; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;'>Time</div>
+                            <div style='color: #F6F3EC; font-weight: 600;'>{entry.get('preferred_time', 'Flexible')}</div>
                         </div>
                         <div>
-                            <div style='color: #d4b896; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;'>Players</div>
-                            <div style='color: #f7f5f2; font-weight: 600;'>{entry['players']}</div>
+                            <div style='color: #E0D5BE; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;'>Players</div>
+                            <div style='color: #F6F3EC; font-weight: 600;'>{entry['players']}</div>
                         </div>
                         <div>
-                            <div style='color: #d4b896; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;'>Priority</div>
-                            <div style='color: #f7f5f2; font-weight: 600;'>{entry['priority']}/10</div>
+                            <div style='color: #E0D5BE; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;'>Priority</div>
+                            <div style='color: #F6F3EC; font-weight: 600;'>{entry['priority']}/10</div>
                         </div>
                     </div>
-                    {f"<div style='background: #2d3e4f; padding: 0.75rem; border-radius: 6px; margin-top: 1rem;'><div style='color: #d4b896; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem;'>Notes</div><div style='color: #e8e3d9; font-size: 0.875rem;'>{entry['notes']}</div></div>" if entry.get('notes') else ""}
+                    {f"<div style='background: #2d3e4f; padding: 0.75rem; border-radius: 6px; margin-top: 1rem;'><div style='color: #E0D5BE; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem;'>Notes</div><div style='color: #e8e3d9; font-size: 0.875rem;'>{entry['notes']}</div></div>" if entry.get('notes') else ""}
                 </div>
             """
             st.markdown(card_html, unsafe_allow_html=True)
@@ -1818,7 +1845,7 @@ elif page == "Waitlist":
 elif page == "Marketing Segmentation":
     st.markdown("""
         <h2 style='margin-bottom: 0.5rem;'>Marketing Segmentation</h2>
-        <p style='color: #d4b896; margin-bottom: 1.5rem;'>Customer segments and targeted marketing opportunities</p>
+        <p style='color: #E0D5BE; margin-bottom: 1.5rem;'>Customer segments and targeted marketing opportunities</p>
     """, unsafe_allow_html=True)
 
     # Load bookings for segmentation
@@ -1871,7 +1898,7 @@ elif page == "Marketing Segmentation":
             </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("<div style='height: 2px; background: #6b7c3f; margin: 2rem 0;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 2px; background: #6B7F4E; margin: 2rem 0;'></div>", unsafe_allow_html=True)
 
     # Filter by segment
     st.markdown("### Detailed Segment Analysis")
@@ -1901,11 +1928,11 @@ elif page == "Marketing Segmentation":
         recommended_action = html.escape(str(segment['Recommended Action']))
 
         card_html = f"""
-            <div style='background: linear-gradient(135deg, #3d5266 0%, #5a6f85 100%); border: 2px solid {priority_color}; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem;'>
+            <div style='background: linear-gradient(135deg, #2B4048 0%, #5a6f85 100%); border: 2px solid {priority_color}; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem;'>
                 <div style='display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;'>
                     <div>
-                        <div style='color: #f7f5f2; font-size: 1.125rem; font-weight: 600;'>{customer_email}</div>
-                        <div style='color: #d4b896; font-size: 0.875rem; margin-top: 0.25rem;'>{segment_name}</div>
+                        <div style='color: #F6F3EC; font-size: 1.125rem; font-weight: 600;'>{customer_email}</div>
+                        <div style='color: #E0D5BE; font-size: 0.875rem; margin-top: 0.25rem;'>{segment_name}</div>
                     </div>
                     <div style='background: {priority_color}; color: #ffffff; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; font-size: 0.875rem;'>
                         {priority} Priority
@@ -1913,24 +1940,24 @@ elif page == "Marketing Segmentation":
                 </div>
                 <div style='display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1rem;'>
                     <div>
-                        <div style='color: #d4b896; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;'>Total Contacts</div>
-                        <div style='color: #f7f5f2; font-weight: 600; font-size: 1.25rem;'>{int(segment['Total Contacts'])}</div>
+                        <div style='color: #E0D5BE; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;'>Total Contacts</div>
+                        <div style='color: #F6F3EC; font-weight: 600; font-size: 1.25rem;'>{int(segment['Total Contacts'])}</div>
                     </div>
                     <div>
-                        <div style='color: #d4b896; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;'>Bookings</div>
-                        <div style='color: #f7f5f2; font-weight: 600; font-size: 1.25rem;'>{int(segment['Completed Bookings'])}</div>
+                        <div style='color: #E0D5BE; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;'>Bookings</div>
+                        <div style='color: #F6F3EC; font-weight: 600; font-size: 1.25rem;'>{int(segment['Completed Bookings'])}</div>
                     </div>
                     <div>
-                        <div style='color: #d4b896; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;'>Revenue</div>
-                        <div style='color: #10b981; font-weight: 700; font-size: 1.25rem;'>${segment['Total Revenue']:,.0f}</div>
+                        <div style='color: #E0D5BE; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;'>Revenue</div>
+                        <div style='color: #10b981; font-weight: 700; font-size: 1.25rem;'>{CURRENCY_SYMBOL}{segment['Total Revenue']:,.0f}</div>
                     </div>
                     <div>
-                        <div style='color: #d4b896; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;'>Last Contact</div>
-                        <div style='color: #f7f5f2; font-weight: 600;'>{segment['Last Contact'].strftime('%b %d, %Y') if pd.notna(segment['Last Contact']) else 'N/A'}</div>
+                        <div style='color: #E0D5BE; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;'>Last Contact</div>
+                        <div style='color: #F6F3EC; font-weight: 600;'>{segment['Last Contact'].strftime('%b %d, %Y') if pd.notna(segment['Last Contact']) else 'N/A'}</div>
                     </div>
                 </div>
                 <div style='background: #2d3e4f; padding: 0.75rem; border-radius: 6px;'>
-                    <div style='color: #d4b896; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem;'>Recommended Action</div>
+                    <div style='color: #E0D5BE; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem;'>Recommended Action</div>
                     <div style='color: #e8e3d9; font-size: 0.875rem;'>{recommended_action}</div>
                 </div>
             </div>
@@ -1938,7 +1965,7 @@ elif page == "Marketing Segmentation":
         st.markdown(card_html, unsafe_allow_html=True)
 
     # Export segments
-    st.markdown("<div style='height: 2px; background: #6b7c3f; margin: 2rem 0;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 2px; background: #6B7F4E; margin: 2rem 0;'></div>", unsafe_allow_html=True)
     st.markdown("### Export Segments")
 
     col_exp1, col_exp2 = st.columns(2)
@@ -1973,7 +2000,7 @@ elif page == "Marketing Segmentation":
 elif page == "Notify Integration":
     st.markdown("""
         <h2 style='margin-bottom: 0.5rem;'>Notify Platform Integration</h2>
-        <p style='color: #d4b896; margin-bottom: 1.5rem;'>Export and sync booking data with external notification platforms</p>
+        <p style='color: #E0D5BE; margin-bottom: 1.5rem;'>Export and sync booking data with external notification platforms</p>
     """, unsafe_allow_html=True)
 
     # Load bookings
@@ -1989,9 +2016,9 @@ elif page == "Notify Integration":
 
     with col_stat1:
         st.markdown(f"""
-            <div style='background: linear-gradient(135deg, #3d5266 0%, #5a6f85 100%); border: 2px solid #d4b896; border-radius: 12px; padding: 1.5rem; text-align: center;'>
-                <div style='color: #d4b896; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem;'>Total Records</div>
-                <div style='color: #f7f5f2; font-size: 2.5rem; font-weight: 700;'>{len(df)}</div>
+            <div style='background: linear-gradient(135deg, #2B4048 0%, #5a6f85 100%); border: 2px solid #E0D5BE; border-radius: 12px; padding: 1.5rem; text-align: center;'>
+                <div style='color: #E0D5BE; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem;'>Total Records</div>
+                <div style='color: #F6F3EC; font-size: 2.5rem; font-weight: 700;'>{len(df)}</div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -2007,13 +2034,13 @@ elif page == "Notify Integration":
     with col_stat3:
         last_export = datetime.now().strftime('%b %d, %Y %I:%M %p')
         st.markdown(f"""
-            <div style='background: linear-gradient(135deg, #3d5266 0%, #5a6f85 100%); border: 2px solid #d4b896; border-radius: 12px; padding: 1.5rem; text-align: center;'>
-                <div style='color: #d4b896; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem;'>Last Export</div>
-                <div style='color: #f7f5f2; font-size: 0.875rem; font-weight: 600;'>{last_export}</div>
+            <div style='background: linear-gradient(135deg, #2B4048 0%, #5a6f85 100%); border: 2px solid #E0D5BE; border-radius: 12px; padding: 1.5rem; text-align: center;'>
+                <div style='color: #E0D5BE; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem;'>Last Export</div>
+                <div style='color: #F6F3EC; font-size: 0.875rem; font-weight: 600;'>{last_export}</div>
             </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("<div style='height: 2px; background: #6b7c3f; margin: 2rem 0;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 2px; background: #6B7F4E; margin: 2rem 0;'></div>", unsafe_allow_html=True)
 
     # Export Options
     st.markdown("### Export Options")
@@ -2081,7 +2108,7 @@ elif page == "Notify Integration":
                         else:
                             st.error(message)
 
-    st.markdown("<div style='height: 2px; background: #6b7c3f; margin: 2rem 0;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 2px; background: #6B7F4E; margin: 2rem 0;'></div>", unsafe_allow_html=True)
 
     # Preview Export Data
     st.markdown("### Preview Export Data")

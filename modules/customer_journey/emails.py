@@ -82,9 +82,15 @@ def extract_tee_time_from_selected_tee_times(selected_tee_times):
 
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
 FROM_EMAIL = os.environ.get('FROM_EMAIL')
-FROM_NAME = os.environ.get('FROM_NAME', 'Streamsong Golf Resort')
+FROM_NAME = os.environ.get('FROM_NAME', 'Royal Dornoch Golf Club')
 TEMPLATE_PRE_ARRIVAL = os.environ.get('SENDGRID_TEMPLATE_PRE_ARRIVAL')
 TEMPLATE_POST_PLAY = os.environ.get('SENDGRID_TEMPLATE_POST_PLAY')
+
+# Which club's bookings this dashboard manages (matches bookings.club)
+CLUB_ID = os.environ.get('CLUB_ID', 'dornoch')
+
+# Currency - Royal Dornoch prices in pounds sterling
+CURRENCY_SYMBOL = os.environ.get('CURRENCY_SYMBOL', '\u00a3')
 
 
 # ============================================================================
@@ -118,11 +124,11 @@ def get_upcoming_bookings(days_ahead=3, show_all=False):
 
     # Build the WHERE clause based on show_all
     if show_all:
-        where_clause = "WHERE club = 'streamsong' AND status = 'Confirmed' AND date >= CURRENT_DATE"
-        params = ()
+        where_clause = "WHERE club = %s AND status = 'Confirmed' AND date >= CURRENT_DATE"
+        params = (CLUB_ID,)
     else:
-        where_clause = "WHERE club = 'streamsong' AND status = 'Confirmed' AND date = %s"
-        params = (target_date,)
+        where_clause = "WHERE club = %s AND status = 'Confirmed' AND date = %s"
+        params = (CLUB_ID, target_date)
 
     # Note: We fetch 'note' field which contains email content with tee time info
     if has_email_tracking:
@@ -216,11 +222,11 @@ def get_recent_bookings(days_ago=2, show_all=False):
 
     # Build the WHERE clause based on show_all
     if show_all:
-        where_clause = "WHERE club = 'streamsong' AND status = 'Confirmed' AND date >= CURRENT_DATE - INTERVAL '30 days'"
-        params = ()
+        where_clause = "WHERE club = %s AND status = 'Confirmed' AND date >= CURRENT_DATE - INTERVAL '30 days'"
+        params = (CLUB_ID,)
     else:
-        where_clause = "WHERE club = 'streamsong' AND status = 'Confirmed' AND date = %s"
-        params = (target_date,)
+        where_clause = "WHERE club = %s AND status = 'Confirmed' AND date = %s"
+        params = (CLUB_ID, target_date)
 
     if has_email_tracking:
         cursor.execute(f"""
@@ -337,25 +343,25 @@ def get_proshop_items():
     """
     return [
         {
-            'name': 'Streamsong Resort Cap',
-            'description': 'Premium embroidered cap with Streamsong logo',
+            'name': 'Royal Dornoch Golf Club Cap',
+            'description': 'Premium embroidered cap with Royal Dornoch logo',
             'price': '35',
-            'image_url': 'https://streamsonggolf.com/images/cap.jpg',
-            'url': 'https://streamsonggolf.com/proshop/cap'
+            'image_url': 'https://dornochgolf.com/images/cap.jpg',
+            'url': 'https://dornochgolf.com/proshop/cap'
         },
         {
             'name': 'Titleist Pro V1',
-            'description': 'Dozen premium golf balls - perfect for Streamsong courses',
+            'description': 'Dozen premium golf balls - perfect for Royal Dornoch courses',
             'price': '55',
-            'image_url': 'https://streamsonggolf.com/images/balls.jpg',
-            'url': 'https://streamsonggolf.com/proshop/balls'
+            'image_url': 'https://dornochgolf.com/images/balls.jpg',
+            'url': 'https://dornochgolf.com/proshop/balls'
         },
         {
-            'name': 'Streamsong Performance Polo',
+            'name': 'Royal Dornoch Performance Polo',
             'description': 'Moisture-wicking performance polo with resort logo',
             'price': '85',
-            'image_url': 'https://streamsonggolf.com/images/polo.jpg',
-            'url': 'https://streamsonggolf.com/proshop/polo'
+            'image_url': 'https://dornochgolf.com/images/polo.jpg',
+            'url': 'https://dornochgolf.com/proshop/polo'
         }
     ]
 
@@ -425,22 +431,22 @@ def send_welcome_email(booking):
             # Your template uses these exact field names:
             'guest_name': guest_name,
             'booking_date': formatted_date,               # Template: {{booking_date}}
-            'course_name': booking.get('golf_courses') or 'Streamsong Golf Resort',  # Template: {{course_name}}
+            'course_name': booking.get('golf_courses') or 'Royal Dornoch Golf Club',  # Template: {{course_name}}
             'tee_time': tee_time_value,  # Template: {{tee_time}}
             'player_count': str(booking.get('players', 0)),  # Template: {{player_count}}
             'booking_reference': booking['booking_id'],    # Template: {{booking_reference}}
-            'product_price': '$98.00',                     # Template: {{product_price}}
+            'product_price': f'{CURRENCY_SYMBOL}98.00',                     # Template: {{product_price}}
             'current_year': str(datetime.now().year),     # Template: {{current_year}}
 
             # Backward compatibility (keep these for old templates)
             'date': formatted_date,
-            'course': booking.get('golf_courses') or 'Streamsong Golf Resort',
+            'course': booking.get('golf_courses') or 'Royal Dornoch Golf Club',
             'players': str(booking.get('players', 0)),
             'booking_ref': booking['booking_id'],
             'play_date': formatted_date,
 
             # Additional details
-            'total': f"${booking.get('total', 0):.2f}" if booking.get('total') else '$0.00',
+            'total': f"{CURRENCY_SYMBOL}{booking.get('total', 0):.2f}" if booking.get('total') else f'{CURRENCY_SYMBOL}0.00',
             'club_email': FROM_EMAIL,
             'proshop_items': get_proshop_items(),
 
@@ -451,9 +457,9 @@ def send_welcome_email(booking):
             'lodging_nights': str(booking.get('lodging_nights') or 0),
             'lodging_rooms': str(booking.get('lodging_rooms') or 0),
             'lodging_room_type': booking.get('lodging_room_type') or '',
-            'lodging_cost': f"${booking.get('lodging_cost', 0):.2f}" if booking.get('lodging_cost') else '',
-            'resort_fee_per_person': f"${booking.get('resort_fee_per_person', 0):.2f}" if booking.get('resort_fee_per_person') else '',
-            'resort_fee_total': f"${booking.get('resort_fee_total', 0):.2f}" if booking.get('resort_fee_total') else '',
+            'lodging_cost': f"{CURRENCY_SYMBOL}{booking.get('lodging_cost', 0):.2f}" if booking.get('lodging_cost') else '',
+            'resort_fee_per_person': f"{CURRENCY_SYMBOL}{booking.get('resort_fee_per_person', 0):.2f}" if booking.get('resort_fee_per_person') else '',
+            'resort_fee_total': f"{CURRENCY_SYMBOL}{booking.get('resort_fee_total', 0):.2f}" if booking.get('resort_fee_total') else '',
         }
 
         st.info(f"🔍 DEBUG - Full dynamic_data keys: {list(dynamic_data.keys())}")
@@ -543,22 +549,22 @@ def send_thank_you_email(booking):
             # Your template uses these exact field names:
             'guest_name': guest_name,
             'booking_date': formatted_date,               # Template: {{booking_date}}
-            'course_name': booking.get('golf_courses') or 'Streamsong Golf Resort',  # Template: {{course_name}}
+            'course_name': booking.get('golf_courses') or 'Royal Dornoch Golf Club',  # Template: {{course_name}}
             'tee_time': tee_time_value,  # Template: {{tee_time}}
             'player_count': str(booking.get('players', 0)),  # Template: {{player_count}}
             'booking_reference': booking['booking_id'],    # Template: {{booking_reference}}
-            'product_price': '$98.00',                     # Template: {{product_price}}
+            'product_price': f'{CURRENCY_SYMBOL}98.00',                     # Template: {{product_price}}
             'current_year': str(datetime.now().year),     # Template: {{current_year}}
 
             # Backward compatibility (keep these for old templates)
             'date': formatted_date,
-            'course': booking.get('golf_courses') or 'Streamsong Golf Resort',
+            'course': booking.get('golf_courses') or 'Royal Dornoch Golf Club',
             'players': str(booking.get('players', 0)),
             'booking_ref': booking['booking_id'],
             'play_date': formatted_date,
 
             # Additional details
-            'total': f"${booking.get('total', 0):.2f}" if booking.get('total') else '$0.00',
+            'total': f"{CURRENCY_SYMBOL}{booking.get('total', 0):.2f}" if booking.get('total') else f'{CURRENCY_SYMBOL}0.00',
             'club_email': FROM_EMAIL,
             'proshop_items': get_proshop_items(),
 
@@ -569,9 +575,9 @@ def send_thank_you_email(booking):
             'lodging_nights': str(booking.get('lodging_nights') or 0),
             'lodging_rooms': str(booking.get('lodging_rooms') or 0),
             'lodging_room_type': booking.get('lodging_room_type') or '',
-            'lodging_cost': f"${booking.get('lodging_cost', 0):.2f}" if booking.get('lodging_cost') else '',
-            'resort_fee_per_person': f"${booking.get('resort_fee_per_person', 0):.2f}" if booking.get('resort_fee_per_person') else '',
-            'resort_fee_total': f"${booking.get('resort_fee_total', 0):.2f}" if booking.get('resort_fee_total') else '',
+            'lodging_cost': f"{CURRENCY_SYMBOL}{booking.get('lodging_cost', 0):.2f}" if booking.get('lodging_cost') else '',
+            'resort_fee_per_person': f"{CURRENCY_SYMBOL}{booking.get('resort_fee_per_person', 0):.2f}" if booking.get('resort_fee_per_person') else '',
+            'resort_fee_total': f"{CURRENCY_SYMBOL}{booking.get('resort_fee_total', 0):.2f}" if booking.get('resort_fee_total') else '',
         }
 
         st.info(f"🔍 DEBUG - Full dynamic_data keys: {list(dynamic_data.keys())}")

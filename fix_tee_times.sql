@@ -20,7 +20,7 @@ SELECT
         ELSE '❌ NO DATA'
     END as status
 FROM bookings
-WHERE club = 'streamsong'
+WHERE club = 'dornoch'
 AND status = 'Confirmed'
 ORDER BY date DESC
 LIMIT 20;
@@ -34,7 +34,7 @@ SELECT
     COUNT(*) FILTER (WHERE tee_time IS NOT NULL) as already_has_tee_time,
     COUNT(*) FILTER (WHERE tee_time IS NULL AND selected_tee_times IS NULL) as no_data_anywhere
 FROM bookings
-WHERE club = 'streamsong'
+WHERE club = 'dornoch'
 AND status = 'Confirmed';
 
 \echo ''
@@ -43,7 +43,7 @@ AND status = 'Confirmed';
 
 UPDATE bookings
 SET tee_time = selected_tee_times
-WHERE club = 'streamsong'
+WHERE club = 'dornoch'
 AND status = 'Confirmed'
 AND tee_time IS NULL
 AND selected_tee_times IS NOT NULL;
@@ -59,7 +59,7 @@ SELECT
     golf_courses,
     players
 FROM bookings
-WHERE club = 'streamsong'
+WHERE club = 'dornoch'
 AND status = 'Confirmed'
 AND tee_time IS NOT NULL
 ORDER BY date DESC

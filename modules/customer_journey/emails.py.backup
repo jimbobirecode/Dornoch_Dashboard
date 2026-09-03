@@ -22,7 +22,7 @@ from ..database.connection import get_db_connection
 
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
 FROM_EMAIL = os.environ.get('FROM_EMAIL')
-FROM_NAME = os.environ.get('FROM_NAME', 'Streamsong Golf Resort')
+FROM_NAME = os.environ.get('FROM_NAME', 'Royal Dornoch Golf Club')
 TEMPLATE_PRE_ARRIVAL = os.environ.get('SENDGRID_TEMPLATE_PRE_ARRIVAL')
 TEMPLATE_POST_PLAY = os.environ.get('SENDGRID_TEMPLATE_POST_PLAY')
 
@@ -248,25 +248,25 @@ def get_proshop_items():
     """
     return [
         {
-            'name': 'Streamsong Resort Cap',
-            'description': 'Premium embroidered cap with Streamsong logo',
+            'name': 'Royal Dornoch Golf Club Cap',
+            'description': 'Premium embroidered cap with Royal Dornoch logo',
             'price': '35',
-            'image_url': 'https://streamsonggolf.com/images/cap.jpg',
-            'url': 'https://streamsonggolf.com/proshop/cap'
+            'image_url': 'https://dornochgolf.com/images/cap.jpg',
+            'url': 'https://dornochgolf.com/proshop/cap'
         },
         {
             'name': 'Titleist Pro V1',
-            'description': 'Dozen premium golf balls - perfect for Streamsong courses',
+            'description': 'Dozen premium golf balls - perfect for Royal Dornoch courses',
             'price': '55',
-            'image_url': 'https://streamsonggolf.com/images/balls.jpg',
-            'url': 'https://streamsonggolf.com/proshop/balls'
+            'image_url': 'https://dornochgolf.com/images/balls.jpg',
+            'url': 'https://dornochgolf.com/proshop/balls'
         },
         {
-            'name': 'Streamsong Performance Polo',
+            'name': 'Royal Dornoch Performance Polo',
             'description': 'Moisture-wicking performance polo with resort logo',
             'price': '85',
-            'image_url': 'https://streamsonggolf.com/images/polo.jpg',
-            'url': 'https://streamsonggolf.com/proshop/polo'
+            'image_url': 'https://dornochgolf.com/images/polo.jpg',
+            'url': 'https://dornochgolf.com/proshop/polo'
         }
     ]
 
@@ -305,7 +305,7 @@ def send_welcome_email(booking):
             'guest_name': guest_name,
             'date': formatted_date,
             'play_date': formatted_date,
-            'course': booking.get('golf_courses') or 'Streamsong Golf Resort',
+            'course': booking.get('golf_courses') or 'Royal Dornoch Golf Club',
             'tee_time': booking.get('tee_time') or 'TBD',
             'players': str(booking.get('players', 0)),
             'booking_ref': booking['booking_id'],
@@ -378,7 +378,7 @@ def send_thank_you_email(booking):
             'guest_name': guest_name,
             'date': formatted_date,
             'play_date': formatted_date,
-            'course': booking.get('golf_courses') or 'Streamsong Golf Resort',
+            'course': booking.get('golf_courses') or 'Royal Dornoch Golf Club',
             'tee_time': booking.get('tee_time') or 'TBD',
             'players': str(booking.get('players', 0)),
             'booking_ref': booking['booking_id'],

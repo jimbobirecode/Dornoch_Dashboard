@@ -90,13 +90,13 @@ SELECT
             WHEN note ILIKE '%blue%' THEN 'Blue Course'
             WHEN note ILIKE '%red%' THEN 'Red Course'
             WHEN note ILIKE '%black%' THEN 'Black Course'
-            ELSE 'Streamsong Golf Resort'
+            ELSE 'Royal Dornoch Golf Club'
         END,
-        'Streamsong Golf Resort'
+        'Royal Dornoch Golf Club'
     ),
     total,
     'Confirmed',
-    COALESCE(club, 'streamsong'),
+    COALESCE(club, 'dornoch'),
     'Test booking for welcome email - ' || note,
     NOW(),
     hotel_required,
@@ -145,13 +145,13 @@ SELECT
             WHEN note ILIKE '%blue%' THEN 'Blue Course'
             WHEN note ILIKE '%red%' THEN 'Red Course'
             WHEN note ILIKE '%black%' THEN 'Black Course'
-            ELSE 'Streamsong Golf Resort'
+            ELSE 'Royal Dornoch Golf Club'
         END,
-        'Streamsong Golf Resort'
+        'Royal Dornoch Golf Club'
     ),
     total,
     'Confirmed',
-    COALESCE(club, 'streamsong'),
+    COALESCE(club, 'dornoch'),
     'Test booking for thank you email - ' || note,
     NOW(),
     hotel_required,

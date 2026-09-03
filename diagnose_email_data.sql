@@ -2,7 +2,7 @@
 -- Run: psql $DATABASE_URL < diagnose_email_data.sql
 
 \echo '================================================'
-\echo 'DIAGNOSTIC: Email Data for Streamsong Bookings'
+\echo 'DIAGNOSTIC: Email Data for Royal Dornoch Bookings'
 \echo '================================================'
 
 \echo ''
@@ -27,7 +27,7 @@ SELECT
     pre_arrival_email_sent_at,
     post_play_email_sent_at
 FROM bookings
-WHERE club = 'streamsong'
+WHERE club = 'dornoch'
 AND status = 'Confirmed'
 ORDER BY date DESC
 LIMIT 5;
@@ -44,7 +44,7 @@ SELECT
     CASE WHEN players IS NULL THEN '❌ NULL' ELSE '✅ ' || players::text END as players_check,
     CASE WHEN booking_id IS NULL OR booking_id = '' THEN '❌ EMPTY' ELSE '✅ ' || booking_id END as booking_ref_check
 FROM bookings
-WHERE club = 'streamsong'
+WHERE club = 'dornoch'
 AND status = 'Confirmed'
 ORDER BY date DESC
 LIMIT 10;
@@ -56,12 +56,12 @@ LIMIT 10;
 SELECT
     booking_id as "Booking Ref (booking_ref)",
     TO_CHAR(date, 'Day, Month DD, YYYY') as "Date (date)",
-    COALESCE(golf_courses, 'Streamsong Golf Resort') as "Course (course)",
+    COALESCE(golf_courses, 'Royal Dornoch Golf Club') as "Course (course)",
     COALESCE(tee_time, 'TBD') as "Tee Time (tee_time)",
     COALESCE(players::text, '0') as "Players (players)",
     guest_email as "Send To"
 FROM bookings
-WHERE club = 'streamsong'
+WHERE club = 'dornoch'
 AND status = 'Confirmed'
 ORDER BY date DESC
 LIMIT 5;
@@ -75,9 +75,9 @@ SELECT
     COUNT(*) FILTER (WHERE tee_time IS NULL OR tee_time = '') as missing_tee_time,
     COUNT(*) FILTER (WHERE players IS NULL) as missing_players,
     COUNT(*) FILTER (WHERE date IS NULL) as missing_date,
-    COUNT(*) as total_streamsong_bookings
+    COUNT(*) as total_dornoch_bookings
 FROM bookings
-WHERE club = 'streamsong'
+WHERE club = 'dornoch'
 AND status = 'Confirmed';
 
 \echo ''

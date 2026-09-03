@@ -1,4 +1,4 @@
-# Streamsong Dashboard Modules
+# Royal Dornoch Dashboard Modules
 
 Modular, reusable components for building booking management dashboards with Streamlit.
 
@@ -68,13 +68,13 @@ update_booking_note(booking_id, "Updated notes text")
 
 ```python
 import streamlit as st
-from modules.ui import STREAMSONG_COLORS, get_dashboard_css
+from modules.ui import ROYAL DORNOCH_COLORS, get_dashboard_css
 
-# Apply Streamsong styling
+# Apply Royal Dornoch styling
 st.markdown(get_dashboard_css(), unsafe_allow_html=True)
 
 # Use colors in custom components
-color = STREAMSONG_COLORS['olive_green']
+color = ROYAL DORNOCH_COLORS['olive_green']
 ```
 
 ### 4. Utility Functions
@@ -152,7 +152,7 @@ CREATE TABLE bookings (
 Edit `modules/ui/styles.py` to customize the color palette:
 
 ```python
-STREAMSONG_COLORS = {
+ROYAL DORNOCH_COLORS = {
     'slate_blue': '#3d5266',
     'olive_green': '#6b7c3f',
     # ... add your custom colors

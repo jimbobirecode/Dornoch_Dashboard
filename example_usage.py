@@ -1,5 +1,5 @@
 """
-Example: How to use Streamsong Dashboard modules in a new project
+Example: How to use Royal Dornoch Dashboard modules in a new project
 
 This demonstrates how to import and use the modular components
 in your own booking management dashboard.
@@ -20,7 +20,7 @@ from modules.database import (
 )
 
 # Import UI modules
-from modules.ui import STREAMSONG_COLORS, get_dashboard_css
+from modules.ui import DORNOCH_COLORS, get_dashboard_css
 
 # Import utility modules
 from modules.utils import (
@@ -39,7 +39,7 @@ def main():
         layout="wide"
     )
 
-    # Apply Streamsong styling
+    # Apply Royal Dornoch styling
     st.markdown(get_dashboard_css(), unsafe_allow_html=True)
 
     # Initialize session state

@@ -1,7 +1,7 @@
--- Update Streamsong bookings to send to jamie@teemail.io for testing
+-- Update Royal Dornoch bookings to send to jamie@teemail.io for testing
 -- This will redirect emails and ensure data is properly populated
 
--- OPTION 1: Update ALL confirmed Streamsong bookings
+-- OPTION 1: Update ALL confirmed Royal Dornoch bookings
 -- (Use this if you want all bookings to go to your test email)
 UPDATE bookings
 SET
@@ -14,13 +14,13 @@ SET
             WHEN note ILIKE '%blue%' THEN 'Blue Course'
             WHEN note ILIKE '%red%' THEN 'Red Course'
             WHEN note ILIKE '%black%' THEN 'Black Course'
-            ELSE 'Streamsong Golf Resort'
+            ELSE 'Royal Dornoch Golf Club'
         END
     ),
     -- Ensure tee time is populated
     tee_time = COALESCE(NULLIF(tee_time, ''), '09:00 AM')
 WHERE
-    club = 'streamsong'
+    club = 'dornoch'
     AND status = 'Confirmed';
 
 -- Verify the updates
@@ -71,7 +71,7 @@ INSERT INTO bookings (
     'Blue Course',
     850.00,
     'Confirmed',
-    'streamsong',
+    'dornoch',
     'Test booking for welcome email - Blue Course morning tee time',
     NOW(),
     true,
@@ -91,7 +91,7 @@ INSERT INTO bookings (
     'Red Course',
     637.50,
     'Confirmed',
-    'streamsong',
+    'dornoch',
     'Test booking for thank you email - Red Course afternoon round',
     NOW() - INTERVAL '3 days',
     false,

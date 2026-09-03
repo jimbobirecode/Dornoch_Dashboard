@@ -1,4 +1,4 @@
-# SendGrid Email Templates for Streamsong
+# SendGrid Email Templates for Royal Dornoch
 
 ## Available Dynamic Fields
 
@@ -21,7 +21,7 @@ Both email templates now receive these fields:
 
 ### Subject Line
 ```
-Get Ready! Your Streamsong Tee Time is in 3 Days
+Get Ready! Your Royal Dornoch Tee Time is in 3 Days
 ```
 
 ### HTML Template
@@ -148,7 +148,7 @@ Get Ready! Your Streamsong Tee Time is in 3 Days
 <body>
     <div class="container">
         <div class="header">
-            <h1>Welcome to Streamsong Golf Resort! 🏌️</h1>
+            <h1>Welcome to Royal Dornoch Golf Club! 🏌️</h1>
             <p style="margin: 10px 0 0 0; font-size: 16px;">Your tee time is just 3 days away</p>
         </div>
 
@@ -212,7 +212,7 @@ Get Ready! Your Streamsong Tee Time is in 3 Days
 
             <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 25px 0;">
                 <strong>Need to make changes?</strong><br>
-                Contact us at {{club_email}} or call (863) 428-1000<br>
+                Contact us at {{club_email}} or call +44 (0)1862 810219<br>
                 Reference: {{booking_ref}}
             </div>
 
@@ -220,13 +220,13 @@ Get Ready! Your Streamsong Tee Time is in 3 Days
 
             <p style="margin-top: 20px;">
                 Best regards,<br>
-                <strong>The Streamsong Team</strong>
+                <strong>The Royal Dornoch Team</strong>
             </p>
         </div>
 
         <div class="footer">
-            <p>Streamsong Golf Resort | 1000 Streamsong Drive, Bowling Green, FL 33834</p>
-            <p>{{club_email}} | (863) 428-1000</p>
+            <p>Royal Dornoch Golf Club | Golf Road, Dornoch, Sutherland, IV25 3LW, Scotland</p>
+            <p>{{club_email}} | +44 (0)1862 810219</p>
         </div>
     </div>
 </body>
@@ -239,7 +239,7 @@ Get Ready! Your Streamsong Tee Time is in 3 Days
 
 ### Subject Line
 ```
-Thank You for Playing at Streamsong! 🏆
+Thank You for Playing at Royal Dornoch! 🏆
 ```
 
 ### HTML Template
@@ -374,14 +374,14 @@ Thank You for Playing at Streamsong! 🏆
 <body>
     <div class="container">
         <div class="header">
-            <h1>Thank You for Playing at Streamsong! 🏆</h1>
+            <h1>Thank You for Playing at Royal Dornoch! 🏆</h1>
             <p style="margin: 10px 0 0 0; font-size: 16px;">We hope you had an unforgettable round</p>
         </div>
 
         <div class="content">
             <p style="font-size: 16px;">Hi {{guest_name}},</p>
 
-            <p>Thank you for choosing Streamsong Golf Resort! We hope your round on <strong>{{date}}</strong> was everything you hoped for and more.</p>
+            <p>Thank you for choosing Royal Dornoch Golf Club! We hope your round on <strong>{{date}}</strong> was everything you hoped for and more.</p>
 
             <div class="visit-summary">
                 <table>
@@ -412,11 +412,11 @@ Thank You for Playing at Streamsong! 🏆
                 <h3>Share Your Experience</h3>
                 <p style="margin: 10px 0 20px 0;">Your feedback helps us continue to provide world-class golf experiences</p>
                 <a href="https://g.page/r/YOUR_GOOGLE_REVIEW_LINK/review" class="btn-primary">Leave a Review</a>
-                <a href="https://streamsonggolf.com/tee-times" class="btn-secondary">Book Your Next Round</a>
+                <a href="https://dornochgolf.com/tee-times" class="btn-secondary">Book Your Next Round</a>
             </div>
 
             <h3 style="color: #2c5530; margin-top: 30px;">Remember Your Visit - Shop Our Collection</h3>
-            <p>Take home a piece of Streamsong:</p>
+            <p>Take home a piece of Royal Dornoch:</p>
 
             <div class="proshop-section">
                 {{#each proshop_items}}
@@ -440,14 +440,14 @@ Thank You for Playing at Streamsong! 🏆
 
             <p style="margin-top: 20px;">
                 Best regards,<br>
-                <strong>The Streamsong Team</strong><br>
+                <strong>The Royal Dornoch Team</strong><br>
                 {{club_email}}
             </p>
         </div>
 
         <div class="footer">
-            <p>Streamsong Golf Resort | 1000 Streamsong Drive, Bowling Green, FL 33834</p>
-            <p>{{club_email}} | (863) 428-1000</p>
+            <p>Royal Dornoch Golf Club | Golf Road, Dornoch, Sutherland, IV25 3LW, Scotland</p>
+            <p>{{club_email}} | +44 (0)1862 810219</p>
             <p style="margin-top: 15px; font-size: 12px;">
                 <a href="#" style="color: #666;">Unsubscribe</a> |
                 <a href="#" style="color: #666;">Update Preferences</a>
@@ -464,14 +464,14 @@ Thank You for Playing at Streamsong! 🏆
 
 1. **Create Template 1 (Welcome Email)**
    - Go to Email API → Dynamic Templates → Create Template
-   - Name: "Streamsong Welcome Email"
+   - Name: "Royal Dornoch Welcome Email"
    - Add Version → Code Editor
    - Paste the Welcome Email HTML above
    - Save and copy Template ID
 
 2. **Create Template 2 (Thank You Email)**
    - Create another Dynamic Template
-   - Name: "Streamsong Thank You Email"
+   - Name: "Royal Dornoch Thank You Email"
    - Add Version → Code Editor
    - Paste the Thank You Email HTML above
    - Save and copy Template ID

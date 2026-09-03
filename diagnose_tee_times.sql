@@ -1,8 +1,8 @@
--- Diagnostic: Check tee_time data specifically for Streamsong bookings
+-- Diagnostic: Check tee_time data specifically for Royal Dornoch bookings
 -- Run: psql $DATABASE_URL < diagnose_tee_times.sql
 
 \echo '================================================'
-\echo 'DIAGNOSTIC: TEE TIME DATA FOR STREAMSONG'
+\echo 'DIAGNOSTIC: TEE TIME DATA FOR ROYAL DORNOCH'
 \echo '================================================'
 
 \echo ''
@@ -24,7 +24,7 @@ SELECT
     status,
     club
 FROM bookings
-WHERE club = 'streamsong'
+WHERE club = 'dornoch'
 AND status = 'Confirmed'
 ORDER BY date DESC
 LIMIT 10;
@@ -40,7 +40,7 @@ SELECT
     COUNT(*) FILTER (WHERE tee_time = '') as tee_times_empty_string,
     COUNT(*) FILTER (WHERE tee_time IS NOT NULL AND tee_time != '') as tee_times_with_value
 FROM bookings
-WHERE club = 'streamsong'
+WHERE club = 'dornoch'
 AND status = 'Confirmed';
 
 \echo ''
@@ -69,7 +69,7 @@ SELECT
     golf_courses as "Course",
     players as "Players"
 FROM bookings
-WHERE club = 'streamsong'
+WHERE club = 'dornoch'
 AND status = 'Confirmed'
 AND date >= CURRENT_DATE
 ORDER BY date

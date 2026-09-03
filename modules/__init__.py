@@ -1,5 +1,5 @@
 """
-Streamsong Dashboard Modules
+Royal Dornoch Dashboard Modules
 Reusable components for booking management dashboards
 """
 

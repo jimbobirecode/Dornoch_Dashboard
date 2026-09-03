@@ -24,7 +24,7 @@ INSERT INTO bookings (
     4,
     850.00,
     'Confirmed',
-    'streamsong',
+    'dornoch',
     'Tee time: 09:00 AM - Blue Course',
     NOW()
 ),
@@ -37,7 +37,7 @@ INSERT INTO bookings (
     2,
     425.00,
     'Confirmed',
-    'streamsong',
+    'dornoch',
     'Tee time: 10:30 AM - Red Course',
     NOW()
 ),
@@ -50,7 +50,7 @@ INSERT INTO bookings (
     3,
     637.50,
     'Confirmed',
-    'streamsong',
+    'dornoch',
     'Tee time: 02:00 PM - Black Course',
     NOW()
 );
@@ -78,7 +78,7 @@ INSERT INTO bookings (
     4,
     850.00,
     'Confirmed',
-    'streamsong',
+    'dornoch',
     'Tee time: 08:30 AM - Blue Course - Completed',
     NOW() - INTERVAL '3 days'
 ),
@@ -91,7 +91,7 @@ INSERT INTO bookings (
     2,
     425.00,
     'Confirmed',
-    'streamsong',
+    'dornoch',
     'Tee time: 11:00 AM - Red Course - Completed',
     NOW() - INTERVAL '3 days'
 ),
@@ -104,7 +104,7 @@ INSERT INTO bookings (
     3,
     637.50,
     'Confirmed',
-    'streamsong',
+    'dornoch',
     'Tee time: 01:30 PM - Black Course - Completed',
     NOW() - INTERVAL '3 days'
 );
@@ -132,7 +132,7 @@ INSERT INTO bookings (
     2,
     425.00,
     'Confirmed',
-    'streamsong',
+    'dornoch',
     'Tee time: 03:00 PM - Today',
     NOW()
 );

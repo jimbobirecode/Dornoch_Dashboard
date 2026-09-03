@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from psycopg.rows import dict_row
 
 # Add parent directory to path
-sys.path.insert(0, '/home/user/streamsong_dashboard')
+sys.path.insert(0, '/home/user/dornoch_dashboard')
 
 from modules.database.connection import get_db_connection
 
@@ -66,7 +66,7 @@ def test_upcoming_bookings():
         print(f"\n   📨 SendGrid Data:")
         print(f"      {{{{guest_name}}}}: {booking['guest_email'].split('@')[0].title()}")
         print(f"      {{{{date}}}}: {formatted_date}")
-        print(f"      {{{{course}}}}: {booking.get('golf_courses', 'Streamsong Golf Resort')}")
+        print(f"      {{{{course}}}}: {booking.get('golf_courses', 'Royal Dornoch Golf Club')}")
         print(f"      {{{{tee_time}}}}: {booking.get('tee_time', 'TBD')}")
         print(f"      {{{{players}}}}: {booking['players']}")
         print(f"      {{{{booking_ref}}}}: {booking['booking_id']}")
@@ -128,7 +128,7 @@ def test_recent_bookings():
         print(f"\n   📨 SendGrid Data:")
         print(f"      {{{{guest_name}}}}: {booking['guest_email'].split('@')[0].title()}")
         print(f"      {{{{date}}}}: {formatted_date}")
-        print(f"      {{{{course}}}}: {booking.get('golf_courses', 'Streamsong Golf Resort')}")
+        print(f"      {{{{course}}}}: {booking.get('golf_courses', 'Royal Dornoch Golf Club')}")
         print(f"      {{{{tee_time}}}}: {booking.get('tee_time', 'TBD')}")
         print(f"      {{{{players}}}}: {booking['players']}")
         print(f"      {{{{booking_ref}}}}: {booking['booking_id']}")

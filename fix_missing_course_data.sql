@@ -19,7 +19,7 @@ SET golf_courses =
         WHEN note ILIKE '%blue course%' OR note ILIKE '%blue%' THEN 'Blue Course'
         WHEN note ILIKE '%red course%' OR note ILIKE '%red%' THEN 'Red Course'
         WHEN note ILIKE '%black course%' OR note ILIKE '%black%' THEN 'Black Course'
-        ELSE 'Streamsong Golf Resort'
+        ELSE 'Royal Dornoch Golf Club'
     END
 WHERE status = 'Confirmed'
 AND (golf_courses IS NULL OR golf_courses = '');

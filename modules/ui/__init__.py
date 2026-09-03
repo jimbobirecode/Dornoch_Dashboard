@@ -1,7 +1,7 @@
 """UI components and styling module"""
-from .styles import STREAMSONG_COLORS, get_dashboard_css
+from .styles import DORNOCH_COLORS, get_dashboard_css
 
 __all__ = [
-    'STREAMSONG_COLORS',
+    'DORNOCH_COLORS',
     'get_dashboard_css'
 ]
