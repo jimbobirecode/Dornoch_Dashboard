@@ -52,7 +52,7 @@ pro-shop items). The core API has a matching `club_config.py` - keep the two
    | `CLUB_PROFILE` | `royal_dornoch` (already the default on this branch) |
    | `DATABASE_URL` | same Postgres as the core API |
    | `SENDGRID_API_KEY` | for the Customer Journey Emails page |
-   | `FROM_EMAIL` / `FROM_NAME` | `royaldornochdemo@bookings.teemail.io` / `Royal Dornoch Golf Club` |
+   | `FROM_EMAIL` / `FROM_NAME` | `bookings@dornoch.teemail.io` / `Royal Dornoch Golf Club` |
    | `SENDGRID_TEMPLATE_PRE_ARRIVAL` / `SENDGRID_TEMPLATE_POST_PLAY` | SendGrid dynamic template ids (optional) |
 
 ## Seed the demo database
