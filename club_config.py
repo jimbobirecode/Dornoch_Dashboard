@@ -90,7 +90,7 @@ ROYAL_DORNOCH_PROFILE: Dict = {
     'datetime_compact': '%d/%m %H:%M',
     'logo_file': 'assets/royal-dornoch-logo.png',
     'logo_file_light': 'assets/royal-dornoch-logo.png',   # login screen is dark too
-    'page_icon': '⛳',
+    'page_icon': 'assets/royal-dornoch-logo.png',         # browser tab icon
     'export_prefix': 'royal_dornoch',
     'from_name': 'Royal Dornoch Golf Club',
     'courses': ['Championship Course', 'Struie Course'],
