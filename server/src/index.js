@@ -10,6 +10,8 @@ import authRoutes from './routes/auth.js';
 import bookingRoutes from './routes/bookings.js';
 import analyticsRoutes from './routes/analytics.js';
 import emailRoutes from './routes/emails.js';
+import operatorRoutes from './routes/operators.js';
+import reminderRoutes from './routes/reminders.js';
 import { pool } from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -38,6 +40,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/emails', emailRoutes);
+app.use('/api/operators', operatorRoutes);
+app.use('/api/reminders', reminderRoutes);
 
 const distDir = path.resolve(__dirname, '../../web/dist');
 if (fs.existsSync(distDir)) {

@@ -7,7 +7,22 @@ import {
   extractTeeTimeFromNote,
   serialiseBooking,
 } from '../lib/bookings-domain.js';
-import { buildAuditSet, getBookingColumns } from '../lib/schema.js';
+import {
+  buildAuditSet,
+  getBookingColumns,
+  getOperatorColumns,
+  hasOperatorsTable,
+} from '../lib/schema.js';
+import {
+  PAYMENT_STATUSES,
+  attachOperators,
+  buildOperatorIndex,
+  identify,
+  normalisePaymentStatus,
+  paymentState,
+  serialiseOperator,
+} from '../lib/operators-domain.js';
+import { todayInClubZone } from '../lib/email-domain.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -47,9 +62,160 @@ async function updateBookingField({ column, value, bookingId, club, username }) 
   return rows[0] ? serialiseBooking(rows[0]) : null;
 }
 
+/**
+ * The operators this club trades with, or an empty list on an install that has
+ * not run `migration_add_tour_operators.sql`. Absence is normal, not an error:
+ * the bookings table simply shows no trade columns.
+ */
+async function loadOperatorsIfPresent(club) {
+  if (!(await hasOperatorsTable())) return [];
+  const columns = await getOperatorColumns();
+  const { rows } = await query(
+    `SELECT ${columns.selectList} FROM public.tour_operators WHERE club = $1`,
+    [club],
+  );
+  return rows.map(serialiseOperator);
+}
+
+/**
+ * Every booking with the trade account it was identified as belonging to, and
+ * what it owes under that account's terms.
+ *
+ * Both are derived on read rather than stored, so a change to an operator's
+ * credit terms is reflected in every one of their bookings immediately, and a
+ * booking whose due date has simply passed reads as overdue without anybody
+ * having to run a nightly job to say so.
+ */
+async function loadBookingsWithAccounts(club) {
+  const [bookings, operators] = await Promise.all([
+    loadBookings(club),
+    loadOperatorsIfPresent(club),
+  ]);
+
+  const today = todayInClubZone();
+  const index = buildOperatorIndex(operators);
+  const byId = new Map(operators.map((operator) => [operator.id, operator]));
+
+  const enriched = attachOperators(bookings, index).map((booking) => ({
+    ...booking,
+    payment: paymentState(booking, byId.get(booking.operatorId) ?? null, { today }),
+  }));
+
+  return { bookings: enriched, operators, today };
+}
+
 router.get('/', async (req, res, next) => {
   try {
-    res.json({ bookings: await loadBookings(req.user.customerId) });
+    const { bookings, operators, today } = await loadBookingsWithAccounts(req.user.customerId);
+    res.json({
+      bookings,
+      today,
+      paymentStatuses: PAYMENT_STATUSES,
+      operators: operators.map(({ id, name, contactEmail, onHold, active }) => ({
+        id,
+        name,
+        contactEmail,
+        onHold,
+        active,
+      })),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * The payment side of one booking: what has been invoiced, what has been paid,
+ * and any due dates that override the operator's standard terms.
+ *
+ * Every field is optional — the drawer sends only what changed — and `null`
+ * clears an override so the account terms apply again.
+ */
+router.patch('/:bookingId/payment', async (req, res, next) => {
+  const columns = await getBookingColumns();
+  if (!columns.has('payment_status')) {
+    return res.status(409).json({
+      error: 'This database has no payment columns. Run migration_add_tour_operators.sql to add them.',
+      migration: 'migration_add_tour_operators.sql',
+    });
+  }
+
+  const body = req.body ?? {};
+  const updates = {};
+
+  if (body.paymentStatus !== undefined) {
+    if (!PAYMENT_STATUSES.includes(body.paymentStatus)) {
+      return res.status(400).json({ error: `Unknown payment status: ${body.paymentStatus}` });
+    }
+    updates.payment_status = normalisePaymentStatus(body.paymentStatus);
+  }
+
+  if (body.amountPaid !== undefined) {
+    const amount = Number(body.amountPaid);
+    if (!Number.isFinite(amount) || amount < 0) {
+      return res.status(400).json({ error: 'amountPaid must be zero or more' });
+    }
+    updates.amount_paid = amount;
+  }
+
+  if (body.invoiceNumber !== undefined) {
+    updates.invoice_number = String(body.invoiceNumber).trim() || null;
+  }
+
+  for (const [field, column] of [
+    ['invoicedAt', 'invoiced_at'],
+    ['depositDueDate', 'deposit_due_date'],
+    ['balanceDueDate', 'balance_due_date'],
+  ]) {
+    if (body[field] === undefined) continue;
+    const value = body[field];
+    if (value === null || value === '') {
+      updates[column] = null;
+    } else if (/^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
+      updates[column] = String(value);
+    } else {
+      return res.status(400).json({ error: `${field} must be a YYYY-MM-DD date or null` });
+    }
+  }
+
+  const names = Object.keys(updates).filter((name) => columns.has(name));
+  if (!names.length) return res.status(400).json({ error: 'Nothing to update' });
+
+  try {
+    const audit = buildAuditSet(columns, names.length + 1, req.user.username);
+    const params = names.map((name) => updates[name]);
+    const sets = names.map((name, index) => `"${name}" = $${index + 1}`);
+
+    params.push(...audit.values);
+    params.push(req.params.bookingId, req.user.customerId);
+
+    const { rows } = await query(
+      `UPDATE public.bookings
+          SET ${[...sets, ...audit.clauses].join(', ')}
+        WHERE booking_id = $${params.length - 1} AND club = $${params.length}
+      RETURNING ${columns.selectList}`,
+      params,
+    );
+
+    if (!rows[0]) return res.status(404).json({ error: 'Booking not found' });
+
+    // Re-identified rather than read off tour_operator_id: most trade bookings
+    // are matched on their sending domain and were never assigned an id, and a
+    // row that came back from a save without its account would show the drawer
+    // the wrong terms — and so the wrong due date.
+    const booking = serialiseBooking(rows[0]);
+    const operators = await loadOperatorsIfPresent(req.user.customerId);
+    const index = buildOperatorIndex(operators);
+    const { operator } = identify(booking, index);
+
+    res.json({
+      booking: {
+        ...booking,
+        operatorId: operator?.id ?? null,
+        operatorName: operator?.name ?? null,
+        payment: paymentState(booking, operator, { today: todayInClubZone() }),
+      },
+    });
   } catch (err) {
     next(err);
   }
@@ -185,6 +351,13 @@ const EXPORT_COLUMNS = [
   ['hotelRequired', 'Accommodation Required'],
   ['hotelCheckin', 'Check-In'],
   ['hotelCheckout', 'Check-Out'],
+  ['operatorName', 'Tour Operator'],
+  ['paymentStatus', 'Payment Status'],
+  ['amountPaid', 'Amount Paid'],
+  ['outstanding', 'Outstanding'],
+  ['dueDate', 'Payment Due'],
+  ['daysOverdue', 'Days Overdue'],
+  ['invoiceNumber', 'Invoice No.'],
   ['updatedBy', 'Updated By'],
   ['updatedAt', 'Updated At'],
 ];
@@ -194,7 +367,15 @@ router.get('/export', async (req, res, next) => {
   const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
 
   try {
-    let bookings = await loadBookings(req.user.customerId);
+    const loaded = await loadBookingsWithAccounts(req.user.customerId);
+    // The finance columns are flattened onto the row: a spreadsheet cannot
+    // read a nested object, and this export is what goes to the bookkeeper.
+    let bookings = loaded.bookings.map((booking) => ({
+      ...booking,
+      outstanding: booking.payment.outstanding,
+      dueDate: booking.payment.dueDate,
+      daysOverdue: booking.payment.daysOverdue || '',
+    }));
     bookings = applyFilters(bookings, req.query);
 
     if (format === 'csv') {

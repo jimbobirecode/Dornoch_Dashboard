@@ -47,6 +47,28 @@ export const STATUS_COLORS = {
 };
 
 /**
+ * Where a booking's money has got to.
+ *
+ * These are not a new ramp: they are the pipeline ramp used for the one thing
+ * it was validated for, progress toward a finished state, plus the two reserved
+ * terminal colours the statuses already use. Nothing paid is muted ink, a
+ * deposit is the mid gold, settled is the light end.
+ *
+ * `Overdue` is not a payment status — it is derived from the due date every
+ * time it is read — so it never appears alone. It is drawn beside the written
+ * day count, which is what actually carries the meaning.
+ */
+export const PAYMENT_COLORS = {
+  Unpaid: INK_MUTED,
+  'Deposit paid': PIPELINE_RAMP[1],
+  Paid: PIPELINE_RAMP[3],
+  Refunded: '#93A9B8',
+  'Written off': '#93A9B8',
+};
+
+export const OVERDUE = '#DB4F7D';
+
+/**
  * Categorical identity — courses, where the series *are* the subject.
  *
  * Capped at three on purpose: these three clear the all-pairs colourblind and

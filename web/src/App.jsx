@@ -5,6 +5,8 @@ import Login from './pages/Login.jsx';
 import ChangePassword from './pages/ChangePassword.jsx';
 import Bookings from './pages/Bookings.jsx';
 import Emails from './pages/Emails.jsx';
+import Operators from './pages/Operators.jsx';
+import Reminders from './pages/Reminders.jsx';
 
 // The charting library is only needed on the analytics route — keep it out of
 // the initial bundle so the bookings table loads fast.
@@ -42,8 +44,14 @@ export default function App() {
           <NavLink to="/analytics" className={navClass}>
             Analytics
           </NavLink>
+          <NavLink to="/operators" className={navClass}>
+            Tour Operators
+          </NavLink>
           <NavLink to="/emails" className={navClass}>
             Guest Emails
+          </NavLink>
+          <NavLink to="/reminders" className={navClass}>
+            Operator Reminders
           </NavLink>
         </nav>
 
@@ -66,7 +74,9 @@ export default function App() {
           <Routes>
             <Route path="/bookings" element={<Bookings user={user} />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/operators" element={<Operators />} />
             <Route path="/emails" element={<Emails />} />
+            <Route path="/reminders" element={<Reminders />} />
             <Route path="*" element={<Navigate to="/bookings" replace />} />
           </Routes>
         </Suspense>

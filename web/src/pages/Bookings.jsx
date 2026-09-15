@@ -10,7 +10,8 @@ import BookingDrawer from '../components/BookingDrawer.jsx';
 import KpiTile from '../components/KpiTile.jsx';
 
 export default function Bookings() {
-  const { bookings, error, loading, lastUpdated, refresh, replaceBooking, removeBooking } = useBookings();
+  const { bookings, operators, error, loading, lastUpdated, refresh, replaceBooking, removeBooking } =
+    useBookings();
 
   const [search, setSearch] = useState('');
   const [preset, setPreset] = useState(DEFAULT_PRESET);
@@ -39,6 +40,7 @@ export default function Bookings() {
         booking.contactPhone,
         booking.golfCourses,
         booking.teeTime,
+        booking.operatorName,
       ]
         .filter(Boolean)
         .some((field) => String(field).toLowerCase().includes(needle));
@@ -188,6 +190,7 @@ export default function Bookings() {
       {selected && (
         <BookingDrawer
           booking={selected}
+          operators={operators}
           onClose={() => setSelectedId(null)}
           onStatusChange={(booking, status) =>
             mutate(async () => {
@@ -205,6 +208,20 @@ export default function Bookings() {
             mutate(async () => {
               const { booking: updated } = await api.setTeeTime(booking.bookingId, teeTime);
               replaceBooking(updated);
+            })
+          }
+          onPaymentSave={(booking, patch) =>
+            mutate(async () => {
+              const { booking: updated } = await api.setPayment(booking.bookingId, patch);
+              replaceBooking(updated);
+            })
+          }
+          onAssignOperator={(booking, operatorId) =>
+            mutate(async () => {
+              await api.assignOperator([booking.bookingId], operatorId);
+              // The account decides the due dates, so the whole row is re-read
+              // rather than patched — the payment state has changed with it.
+              await refresh({ silent: true });
             })
           }
           onDelete={(booking) =>
