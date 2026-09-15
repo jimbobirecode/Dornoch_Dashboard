@@ -369,7 +369,7 @@ table.data tbody tr.selected { background: var(--surface-3); }
 .login-card { width: min(400px, 100%); display: flex; flex-direction: column; gap: 0.875rem; }
 
 .stack { display: flex; flex-direction: column; gap: 1rem; }
-.row { display: flex; gap: 0.75rem; align-items: center; }
+.row { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
 .between { display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 
 .sr-only {
@@ -382,3 +382,53 @@ table.data tbody tr.selected { background: var(--surface-3); }
   .sidebar { width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); }
   .main { padding: 1.25rem 1rem 3rem; }
 }
+
+/* ---------- analytics additions ---------- */
+.kpi-delta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.kpi-delta-value { font-variant-numeric: tabular-nums; }
+
+/* The table view behind every chart, so no reading depends on colour. */
+.chart-table > summary {
+  display: inline-block;
+  width: fit-content;
+  list-style: none;
+  cursor: pointer;
+}
+.chart-table > summary::-webkit-details-marker { display: none; }
+.chart-table > summary::before { content: '▸ '; }
+.chart-table[open] > summary::before { content: '▾ '; }
+
+.segmented {
+  display: inline-flex;
+  gap: 0.15rem;
+  padding: 0.15rem;
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.segmented button {
+  border: 0;
+  background: transparent;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  border-radius: 4px;
+}
+.segmented button[aria-pressed='true'] {
+  background: var(--surface-2);
+  border: 1px solid var(--brand-gold);
+  color: var(--text-primary);
+}
+
+/* Tailwind utilities power the ported Tremor chart components. Emitted last
+   so a chart can override the rules above locally; preflight is disabled in
+   tailwind.config.js so none of the styling above is reset. */
+@tailwind components;
+@tailwind utilities;

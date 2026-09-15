@@ -65,7 +65,8 @@ export const api = {
     request(`/bookings/${encodeURIComponent(bookingId)}`, { method: 'DELETE' }),
   fixTeeTimes: () => request('/bookings/fix-tee-times', { method: 'POST' }),
 
-  analytics: (range = {}) => request(`/analytics${queryString(range)}`),
+  analytics: ({ from, to, granularity } = {}) =>
+    request(`/analytics${queryString({ from, to, granularity })}`),
 };
 
 /**
