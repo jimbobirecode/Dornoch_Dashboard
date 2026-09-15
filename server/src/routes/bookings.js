@@ -135,7 +135,9 @@ router.patch('/:bookingId/payment', async (req, res, next) => {
   const columns = await getBookingColumns();
   if (!columns.has('payment_status')) {
     return res.status(409).json({
-      error: 'This database has no payment columns. Run migration_add_tour_operators.sql to add them.',
+      error:
+        'This database has no payment columns. Run migration_add_tour_operators.sql ' +
+        'to add them — the dashboard picks them up within 30 seconds, with no restart.',
       migration: 'migration_add_tour_operators.sql',
     });
   }

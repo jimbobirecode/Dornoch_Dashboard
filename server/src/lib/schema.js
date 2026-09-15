@@ -97,9 +97,22 @@ const USER_COLUMNS = [
   'last_login',
 ];
 
-// The schema cannot change under a running process, so the lookup is done once
-// per table. The promise itself is cached so concurrent requests share it, and
-// a failed lookup is dropped so the next request retries.
+/**
+ * The lookup is cached per table so that a request does not pay for an
+ * information_schema scan, and the promise itself is cached so concurrent
+ * requests share one. A failed lookup is dropped so the next request retries.
+ *
+ * A *complete* schema is cached for the life of the process — nothing more can
+ * appear. An incomplete one is re-checked every RECHECK_MS, because "incomplete"
+ * is exactly the state a migration is about to fix, and somebody who has just
+ * run one against a live database should not have to work out that the answer
+ * is cached and restart the service to see it. The re-check costs one
+ * information_schema query every 30 seconds, and only while something is
+ * genuinely missing: the moment the install is fully migrated it caches for
+ * good. An install that deliberately stays un-migrated pays two trivial
+ * queries a minute for the privilege.
+ */
+const RECHECK_MS = 30_000;
 const cache = new Map();
 
 async function describe(table, known) {
@@ -115,6 +128,10 @@ async function describe(table, known) {
   return {
     has,
     present,
+    /** No columns at all means the table itself is not there. */
+    missing: present.size === 0,
+    /** Every column this code knows about exists; nothing left to wait for. */
+    complete: known.every((column) => present.has(column)),
     /**
      * A SELECT list covering every column the code reads, with the ones this
      * install lacks aliased to NULL so the shape is always the same.
@@ -126,16 +143,27 @@ async function describe(table, known) {
 }
 
 function cached(table, known) {
-  if (!cache.has(table)) {
-    cache.set(
-      table,
-      describe(table, known).catch((err) => {
-        cache.delete(table);
+  const entry = cache.get(table);
+  // `expiresAt` is undefined while the lookup is still in flight, which is a
+  // hit: concurrent callers share the one query rather than starting their own.
+  if (entry && (entry.expiresAt === undefined || entry.expiresAt > Date.now())) {
+    return entry.promise;
+  }
+
+  const fresh = {
+    promise: describe(table, known)
+      .then((result) => {
+        fresh.expiresAt = result.complete ? Infinity : Date.now() + RECHECK_MS;
+        return result;
+      })
+      .catch((err) => {
+        if (cache.get(table) === fresh) cache.delete(table);
         throw err;
       }),
-    );
-  }
-  return cache.get(table);
+  };
+
+  cache.set(table, fresh);
+  return fresh.promise;
 }
 
 export function getBookingColumns() {

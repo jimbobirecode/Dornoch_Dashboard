@@ -48,7 +48,11 @@ const MIGRATION = 'migration_add_tour_operators.sql';
 async function requireOperatorSchema(res) {
   if (await hasOperatorsTable()) return true;
   res.status(409).json({
-    error: `This database has no tour_operators table. Run ${MIGRATION} to add it.`,
+    error:
+      `This database has no tour_operators table. Run ${MIGRATION} to add it — ` +
+      'the dashboard picks it up within 30 seconds, with no restart. If this ' +
+      'persists after the migration has run, the dashboard is pointed at a ' +
+      'different database than the one it was run against.',
     migration: MIGRATION,
   });
   return false;
@@ -318,7 +322,7 @@ router.post('/assign', async (req, res, next) => {
   const columns = await getBookingColumns();
   if (!columns.has('tour_operator_id')) {
     return res.status(409).json({
-      error: `This database has no tour_operator_id column on bookings. Run ${MIGRATION} to add it.`,
+      error: `This database has no tour_operator_id column on bookings. Run ${MIGRATION} to add it — the dashboard picks it up within 30 seconds, with no restart.`,
       migration: MIGRATION,
     });
   }
