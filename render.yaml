@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: royal-dornoch-dashboard
+    runtime: node
+    plan: free
+    # --include=dev is required: NODE_ENV=production makes npm skip
+    # devDependencies, and vite (the build tool) is one of them.
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
