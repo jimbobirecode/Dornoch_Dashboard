@@ -7,8 +7,14 @@
  * pure — candidate selection, the SendGrid dynamic-template payload and the
  * configuration check — so the routes stay thin and the rules are testable
  * without a database or an API key.
+ *
+ * Where the Club Vero integration is switched on, the post-play template data
+ * also carries a survey link minted for that booking. The link is passed in
+ * rather than fetched here, so this file stays pure; lib/vero.js does the call
+ * and lib/vero-domain.js holds the rules about when there should be one.
  */
 import { BRAND } from './brand.js';
+import { surveyTemplateData } from './vero-domain.js';
 
 /** Bookings only enter a campaign once the club has committed to them. */
 export const SENDABLE_STATUSES = ['Confirmed', 'Booked'];
@@ -144,7 +150,7 @@ function compare(a, b) {
  * `modules/customer_journey/emails.py` exactly, so the same SendGrid templates
  * keep working against this dashboard.
  */
-export function buildTemplateData(booking, { fromEmail, now = new Date() } = {}) {
+export function buildTemplateData(booking, { fromEmail, now = new Date(), survey = null } = {}) {
   const guestName = booking.guestName?.trim() || nameFromEmail(booking.guestEmail);
   const playDate = formatLongDate(booking.date);
   const course = booking.golfCourses?.trim() || BRAND.defaultCourse;
@@ -178,6 +184,11 @@ export function buildTemplateData(booking, { fromEmail, now = new Date() } = {})
     lodging_rooms: String(booking.lodgingRooms ?? 0),
     lodging_room_type: booking.lodgingRoomType ?? '',
     lodging_cost: booking.lodgingCost ? formatMoney(booking.lodgingCost) : '',
+
+    // The Club Vero survey link, where the campaign carries one. Absent when
+    // the integration is off, which is why the template has to render without
+    // it — see lib/vero-domain.js.
+    ...surveyTemplateData(survey ?? {}),
   };
 }
 

@@ -5,6 +5,11 @@
  * The browser only ever names a campaign and a set of booking references — the
  * rows themselves are re-read here, scoped to the signed-in user's club, so a
  * request cannot reach another club's guests.
+ *
+ * Where the Club Vero integration is configured, a campaign that carries a
+ * survey link asks Vero for one per booking before the email goes out, and the
+ * link arrives in the template data as {{survey_url}}. See lib/vero-domain.js
+ * for when that applies and lib/vero.js for the call itself.
  */
 import { Router } from 'express';
 import { query } from '../db.js';
@@ -25,6 +30,13 @@ import {
   validateRecipient,
 } from '../lib/email-domain.js';
 import { sendTemplateEmail } from '../lib/sendgrid.js';
+import {
+  buildRoundPayload,
+  publicVeroConfig,
+  readVeroConfig,
+  veroEnabledFor,
+} from '../lib/vero-domain.js';
+import { requestSurveyLink } from '../lib/vero.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -76,6 +88,7 @@ router.get('/config', async (req, res, next) => {
         pre_arrival: columns.has('pre_arrival_email_sent_at'),
         post_play: columns.has('post_play_email_sent_at'),
       },
+      vero: publicVeroConfig(readVeroConfig()),
     });
   } catch (err) {
     next(err);
@@ -111,9 +124,12 @@ router.get('/pending', async (req, res, next) => {
 /**
  * Send a campaign to the named bookings.
  *
- * `dryRun` walks the same path — same eligibility checks, same rendered
- * template data — and stops short of the SendGrid call, so a preview reports
- * exactly what a real run would do.
+ * `dryRun` walks the same path — same eligibility checks, same Club Vero
+ * decision, same rendered template data — and stops short of the SendGrid
+ * call, so a preview reports exactly what a real run would do. Vero is asked
+ * in preview mode too: it answers with what it would do and writes nothing, so
+ * a guest who has unsubscribed shows up in the preview rather than being
+ * discovered halfway through the real run.
  */
 router.post('/send', async (req, res, next) => {
   const campaign = resolveCampaign(req, res);
@@ -138,9 +154,16 @@ router.post('/send', async (req, res, next) => {
     const { bookings, columns } = await loadClubBookings(req.user.customerId);
     const byId = new Map(bookings.map((booking) => [booking.bookingId, booking]));
 
+    const vero = readVeroConfig();
+    const handOverToVero = veroEnabledFor(vero, campaign.id);
+
     const results = [];
     let sent = 0;
     let failed = 0;
+    // Counted apart from failures on purpose. A guest who has unsubscribed is
+    // not a fault to investigate — lumping them in with the bad addresses is
+    // how a working opt-out gets "fixed".
+    let skipped = 0;
     let tracked = true;
 
     for (const bookingId of bookingIds) {
@@ -160,14 +183,50 @@ router.post('/send', async (req, res, next) => {
 
       const email = cleanEmail(booking.guestEmail);
 
+      // Club Vero first, because it can veto the send.
+      let survey = null;
+      let veroNote = null;
+
+      if (handOverToVero) {
+        const handover = await requestSurveyLink({
+          baseUrl: vero.baseUrl,
+          apiKey: vero.apiKey,
+          source: vero.source,
+          round: buildRoundPayload(booking, { site: vero.site, dryRun }),
+        });
+
+        if (!handover.ok) {
+          // No link, no email — and this is the deliberate part. With the
+          // integration on, the post-play email IS the feedback request: its
+          // whole purpose is to carry that link. Sending it anyway would spend
+          // the one message this guest is going to read on a template with a
+          // dead button in it, and a guest is not emailed twice about the same
+          // round. Failing here instead leaves the booking unstamped, so the
+          // next run picks it up once Vero is answering again.
+          failed += 1;
+          results.push({ bookingId, email, status: 'failed', message: handover.message });
+          continue;
+        }
+
+        if (handover.suppressed) {
+          skipped += 1;
+          results.push({ bookingId, email, status: 'skipped', message: handover.message });
+          continue;
+        }
+
+        survey = { surveyUrl: handover.surveyUrl, unsubscribeUrl: handover.unsubscribeUrl };
+        veroNote = handover.message;
+      }
+
       if (dryRun) {
+        const resend = booking[campaign.field]
+          ? 'Dry run — already sent once, this would be a resend'
+          : 'Dry run — not sent';
         results.push({
           bookingId,
           email,
           status: 'would_send',
-          message: booking[campaign.field]
-            ? 'Dry run — already sent once, this would be a resend'
-            : 'Dry run — not sent',
+          message: veroNote ? `${resend}. ${veroNote}` : resend,
         });
         continue;
       }
@@ -178,7 +237,7 @@ router.post('/send', async (req, res, next) => {
         fromName: config.fromName,
         toEmail: email,
         templateId: config.campaigns[campaign.id].templateId,
-        data: buildTemplateData(booking, { fromEmail: config.fromEmail }),
+        data: buildTemplateData(booking, { fromEmail: config.fromEmail, survey }),
       });
 
       if (outcome.ok) {
@@ -193,11 +252,20 @@ router.post('/send', async (req, res, next) => {
         bookingId,
         email,
         status: outcome.ok ? 'sent' : 'failed',
-        message: outcome.message,
+        message: outcome.ok && veroNote ? `${outcome.message}. ${veroNote}` : outcome.message,
       });
     }
 
-    res.json({ campaign: campaign.id, dryRun, sent, failed, tracked, results });
+    res.json({
+      campaign: campaign.id,
+      dryRun,
+      sent,
+      failed,
+      skipped,
+      tracked,
+      vero: handOverToVero,
+      results,
+    });
   } catch (err) {
     next(err);
   }
