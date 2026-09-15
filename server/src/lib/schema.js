@@ -46,6 +46,8 @@ export const OPTIONAL_COLUMNS = [
   'caddie_requirements',
   'special_requests',
   'form_submitted_at',
+  'pre_arrival_email_sent_at',
+  'post_play_email_sent_at',
 ];
 
 const USER_COLUMNS = [

@@ -150,7 +150,10 @@ async function ensureSchema(client) {
       hotel_checkin DATE,
       hotel_checkout DATE,
       golf_courses TEXT,
-      selected_tee_times TEXT
+      selected_tee_times TEXT,
+      guest_name TEXT,
+      pre_arrival_email_sent_at TIMESTAMPTZ,
+      post_play_email_sent_at TIMESTAMPTZ
     )`);
 
   await client.query(

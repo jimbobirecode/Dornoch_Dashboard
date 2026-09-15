@@ -104,6 +104,9 @@ export function serialiseBooking(row) {
     resortFeePerPerson: nullableNumber(row.resort_fee_per_person),
     resortFeeTotal: nullableNumber(row.resort_fee_total),
 
+    preArrivalEmailSentAt: timestamp(row.pre_arrival_email_sent_at),
+    postPlayEmailSentAt: timestamp(row.post_play_email_sent_at),
+
     timestamp: timestamp(row.timestamp ?? row.created_at),
     customerConfirmedAt: timestamp(row.customer_confirmed_at),
     updatedAt: timestamp(row.updated_at),
