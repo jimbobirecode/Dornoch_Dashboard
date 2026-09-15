@@ -108,6 +108,31 @@ async function main() {
       ok('every user club has bookings');
     }
 
+    console.log('\nTour operators');
+    const hasOperators = await tableExists(client, 'tour_operators');
+    const tradeColumns = ['tour_operator_id', 'payment_status', 'amount_paid'];
+    const reminderColumns = ['operator_status_email_sent_at', 'operator_payment_email_sent_at'];
+    const missingTrade = tradeColumns.filter((col) => !bookingCols.has(col));
+    const missingReminder = reminderColumns.filter((col) => !bookingCols.has(col));
+
+    if (hasOperators && !missingTrade.length && !missingReminder.length) {
+      const { rows: [{ count }] } = await client.query(
+        'SELECT COUNT(*)::int AS count FROM public.tour_operators',
+      );
+      ok(`public.tour_operators exists (${count} account(s)) with every booking column`);
+    } else if (!hasOperators) {
+      // Not a failure: the rest of the dashboard runs without it, the Tour
+      // Operators and Operator Reminders pages simply say what to run.
+      warn('public.tour_operators is missing — run migration_add_tour_operators.sql to enable trade accounts, credit terms and operator reminders');
+    } else {
+      if (missingTrade.length) {
+        warn(`bookings is missing ${missingTrade.join(', ')} — accounts can be set up but nothing can be assigned or paid against them; run migration_add_tour_operators.sql`);
+      }
+      if (missingReminder.length) {
+        warn(`bookings is missing ${missingReminder.join(', ')} — operator reminders send but cannot be de-duplicated; run migration_add_tour_operators.sql`);
+      }
+    }
+
     console.log('\nStatus values');
     const { rows: statusRows } = await client.query(
       'SELECT DISTINCT status FROM public.bookings WHERE status IS NOT NULL',

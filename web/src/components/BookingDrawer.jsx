@@ -1,11 +1,22 @@
 import { useEffect, useState } from 'react';
 import PipelineProgress from './PipelineProgress.jsx';
+import PaymentPanel from './PaymentPanel.jsx';
 import StatusPill from './StatusPill.jsx';
 import { ALL_STATUSES } from '../lib/status.js';
 import { BRAND } from '../lib/brand.js';
 import { formatCurrency, formatDate, formatDateTime } from '../lib/format.js';
 
-export default function BookingDrawer({ booking, onClose, onStatusChange, onNoteSave, onTeeTimeSave, onDelete }) {
+export default function BookingDrawer({
+  booking,
+  operators = [],
+  onClose,
+  onStatusChange,
+  onNoteSave,
+  onTeeTimeSave,
+  onPaymentSave,
+  onAssignOperator,
+  onDelete,
+}) {
   const [note, setNote] = useState(booking.note);
   const [teeTime, setTeeTime] = useState(booking.teeTime);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -65,6 +76,15 @@ export default function BookingDrawer({ booking, onClose, onStatusChange, onNote
           <Field label="Players" value={booking.players} />
           <Field label="Total" value={formatCurrency(booking.total)} accent />
         </div>
+
+        {onPaymentSave && (
+          <PaymentPanel
+            booking={booking}
+            operators={operators}
+            onSave={onPaymentSave}
+            onAssign={onAssignOperator}
+          />
+        )}
 
         {(booking.guestName || booking.contactPhone || booking.caddieRequirements || booking.specialRequests) && (
           <div className="card" style={{ background: 'var(--surface-0)' }}>

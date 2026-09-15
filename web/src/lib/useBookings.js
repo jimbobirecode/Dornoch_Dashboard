@@ -12,6 +12,10 @@ const REFRESH_MS = 60_000;
  */
 export function useBookings() {
   const [bookings, setBookings] = useState([]);
+  // The club's trade accounts ride along with the bookings, because the drawer
+  // needs the list to reassign one and a second request for a handful of names
+  // is not worth its own round trip.
+  const [operators, setOperators] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -23,6 +27,7 @@ export function useBookings() {
       const payload = await api.bookings();
       if (!mounted.current) return;
       setBookings(payload.bookings);
+      setOperators(payload.operators ?? []);
       setLastUpdated(new Date());
       setError(null);
     } catch (err) {
@@ -56,5 +61,5 @@ export function useBookings() {
     setBookings((current) => current.filter((booking) => booking.bookingId !== bookingId));
   }, []);
 
-  return { bookings, error, loading, lastUpdated, refresh, replaceBooking, removeBooking };
+  return { bookings, operators, error, loading, lastUpdated, refresh, replaceBooking, removeBooking };
 }

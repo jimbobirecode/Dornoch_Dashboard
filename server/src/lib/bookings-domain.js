@@ -107,6 +107,18 @@ export function serialiseBooking(row) {
     preArrivalEmailSentAt: timestamp(row.pre_arrival_email_sent_at),
     postPlayEmailSentAt: timestamp(row.post_play_email_sent_at),
 
+    // Trade account and payment state. Null throughout on an install that has
+    // not run migration_add_tour_operators.sql.
+    tourOperatorId: nullableNumber(row.tour_operator_id),
+    paymentStatus: text(row.payment_status) || 'Unpaid',
+    amountPaid: number(row.amount_paid),
+    invoiceNumber: text(row.invoice_number),
+    invoicedAt: dateOnly(row.invoiced_at),
+    depositDueDate: dateOnly(row.deposit_due_date),
+    balanceDueDate: dateOnly(row.balance_due_date),
+    operatorStatusEmailSentAt: timestamp(row.operator_status_email_sent_at),
+    operatorPaymentEmailSentAt: timestamp(row.operator_payment_email_sent_at),
+
     timestamp: timestamp(row.timestamp ?? row.created_at),
     customerConfirmedAt: timestamp(row.customer_confirmed_at),
     updatedAt: timestamp(row.updated_at),

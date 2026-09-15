@@ -8,6 +8,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import StatusPill from './StatusPill.jsx';
+import PaymentPill from './PaymentPill.jsx';
 import { formatCurrency, formatDate, formatDateTime } from '../lib/format.js';
 import { nextStage } from '../lib/status.js';
 import { BRAND } from '../lib/brand.js';
@@ -16,6 +17,17 @@ const columnHelper = createColumnHelper();
 
 export default function BookingsTable({ bookings, selectedId, onSelect, onAdvance, busyId }) {
   const [sorting, setSorting] = useState([{ id: 'date', desc: false }]);
+
+  // The trade columns only earn their width once the club has operators or has
+  // recorded a payment. On an install with neither, the table looks exactly as
+  // it did before this feature existed.
+  const showTrade = useMemo(
+    () =>
+      bookings.some(
+        (booking) => booking.operatorName || (booking.payment && booking.payment.status !== 'Unpaid'),
+      ),
+    [bookings],
+  );
 
   const columns = useMemo(
     () => [
@@ -67,6 +79,38 @@ export default function BookingsTable({ bookings, selectedId, onSelect, onAdvanc
         header: 'Status',
         cell: (info) => <StatusPill status={info.getValue()} />,
       }),
+      ...(showTrade
+        ? [
+            columnHelper.accessor('operatorName', {
+              header: 'Account',
+              cell: (info) =>
+                info.getValue() ? (
+                  <div>
+                    <div>{info.getValue()}</div>
+                    {info.row.original.operatorMatch === 'domain' && (
+                      <div className="muted" style={{ fontSize: '0.75rem' }}>
+                        matched on domain
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <span className="muted">Direct</span>
+                ),
+            }),
+            columnHelper.accessor((row) => row.payment?.status ?? 'Unpaid', {
+              id: 'paymentStatus',
+              header: 'Payment',
+              cell: (info) => <PaymentPill payment={info.row.original.payment} />,
+            }),
+            columnHelper.accessor((row) => row.payment?.outstanding ?? 0, {
+              id: 'outstanding',
+              header: 'Outstanding',
+              meta: { align: 'num' },
+              cell: (info) =>
+                info.getValue() > 0 ? formatCurrency(info.getValue()) : <span className="muted">—</span>,
+            }),
+          ]
+        : []),
       columnHelper.accessor('hotelRequired', {
         header: BRAND.lodgingLabel,
         cell: (info) => (info.getValue() ? 'Required' : '—'),
@@ -98,7 +142,7 @@ export default function BookingsTable({ bookings, selectedId, onSelect, onAdvanc
         },
       }),
     ],
-    [onAdvance, busyId],
+    [onAdvance, busyId, showTrade],
   );
 
   const table = useReactTable({

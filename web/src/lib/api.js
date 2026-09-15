@@ -68,6 +68,24 @@ export const api = {
   analytics: ({ from, to, granularity } = {}) =>
     request(`/analytics${queryString({ from, to, granularity })}`),
 
+  setPayment: (bookingId, patch) =>
+    request(`/bookings/${encodeURIComponent(bookingId)}/payment`, { method: 'PATCH', body: patch }),
+
+  operators: () => request('/operators'),
+  operator: (id) => request(`/operators/${id}`),
+  createOperator: (operator) => request('/operators', { method: 'POST', body: operator }),
+  updateOperator: (id, operator) => request(`/operators/${id}`, { method: 'PATCH', body: operator }),
+  deleteOperator: (id) => request(`/operators/${id}`, { method: 'DELETE' }),
+  operatorSuggestions: () => request('/operators/suggestions/unmatched'),
+  assignOperator: (bookingIds, operatorId) =>
+    request('/operators/assign', { method: 'POST', body: { bookingIds, operatorId } }),
+
+  reminderConfig: () => request('/reminders/config'),
+  remindersPending: (campaign, scope) =>
+    request(`/reminders/pending${queryString({ campaign, scope })}`),
+  sendReminders: (campaign, operatorIds, { dryRun = false, scope = 'due' } = {}) =>
+    request('/reminders/send', { method: 'POST', body: { campaign, operatorIds, dryRun, scope } }),
+
   emailConfig: () => request('/emails/config'),
   emailPending: (campaign, scope) =>
     request(`/emails/pending${queryString({ campaign, scope })}`),

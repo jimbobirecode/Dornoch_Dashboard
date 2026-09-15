@@ -48,6 +48,41 @@ export const OPTIONAL_COLUMNS = [
   'form_submitted_at',
   'pre_arrival_email_sent_at',
   'post_play_email_sent_at',
+
+  // migration_add_tour_operators.sql
+  'tour_operator_id',
+  'payment_status',
+  'amount_paid',
+  'invoice_number',
+  'invoiced_at',
+  'deposit_due_date',
+  'balance_due_date',
+  'operator_status_email_sent_at',
+  'operator_payment_email_sent_at',
+];
+
+/** Every column of `tour_operators`; the table itself may not exist. */
+export const OPERATOR_COLUMNS = [
+  'id',
+  'club',
+  'name',
+  'contact_name',
+  'contact_email',
+  'contact_phone',
+  'account_code',
+  'email_domains',
+  'payment_terms_days',
+  'deposit_percent',
+  'deposit_due_days_before_play',
+  'balance_due_days_before_play',
+  'credit_limit',
+  'currency',
+  'on_hold',
+  'active',
+  'notes',
+  'created_at',
+  'updated_at',
+  'updated_by',
 ];
 
 const USER_COLUMNS = [
@@ -109,6 +144,28 @@ export function getBookingColumns() {
 
 export function getUserColumns() {
   return cached('dashboard_users', USER_COLUMNS);
+}
+
+export function getOperatorColumns() {
+  return cached('tour_operators', OPERATOR_COLUMNS);
+}
+
+/**
+ * Whether this install has run `migration_add_tour_operators.sql`.
+ *
+ * `describe` answers with an empty column set for a table that is not there,
+ * rather than failing, so absence is a normal answer and the Tour Operators
+ * page can explain itself instead of erroring.
+ */
+export async function hasOperatorsTable() {
+  const columns = await getOperatorColumns();
+  return columns.has('id') && columns.has('name');
+}
+
+/** Whether a booking can carry an operator and its payment state. */
+export async function hasOperatorBookingColumns() {
+  const columns = await getBookingColumns();
+  return columns.has('tour_operator_id') && columns.has('payment_status');
 }
 
 /** Only for tests and the seed path, which can create tables mid-process. */

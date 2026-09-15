@@ -6,7 +6,8 @@ uses. No schema change and no data migration — this is a front-end and API
 replacement that can run alongside `dashboard.py` against the same database.
 
 ```
-server/   Express API (auth, bookings, analytics, exports, guest emails)
+server/   Express API (auth, bookings, analytics, exports, guest emails,
+          tour operators and operator reminders)
 web/      React + Vite SPA (bookings table, detail drawer, charts)
 scripts/  seed + read-only compatibility check
 ```
@@ -43,6 +44,10 @@ un-migrated database still loads — the same tolerance
 **Not ported:** the waitlist and pro-shop items. Those remain in the Streamlit
 app.
 
+Beyond the Streamlit dashboard it adds the trade side of the book — tour
+operator accounts, their credit terms, where the money sits, and the two
+reminder campaigns that chase it. See **Tour Operators** below.
+
 ## Guest Emails
 
 The two customer-journey campaigns from `modules/customer_journey/emails.py`,
@@ -77,6 +82,132 @@ The dynamic-template field names — `guest_name`, `booking_date`, `course_name`
 `tee_time`, `player_count`, `booking_reference` and the older `play_date` /
 `booking_ref` spellings — match the Streamlit implementation exactly, so the
 existing SendGrid templates work unchanged.
+
+
+## Tour Operators
+
+The trade half of the book: who books on behalf of guests, what credit they
+trade on, what they owe, and what is chased when.
+
+```bash
+psql "$DATABASE_URL" -f migration_add_tour_operators.sql
+```
+
+Until that runs the two new pages say so and refuse politely; everything else —
+bookings, analytics, guest emails — is unaffected. `npm run check` reports
+whether an install has it.
+
+### Identifying an operator
+
+A booking is attached to an account on one of three kinds of evidence, and they
+are deliberately not equal:
+
+| Evidence | What it is | Acted on automatically |
+|---|---|---|
+| `assigned` | Somebody set `tour_operator_id` on the booking | Yes |
+| `domain` | It arrived from a domain registered to the account | Yes |
+| `name` | The account's name appears in the guest name or the enquiry text | **No** |
+
+A name in prose is a suggestion, not an account. Those bookings stay with the
+direct pile and are listed under **Unrecognised → Bookings that name an
+operator** for somebody to confirm one at a time. Nothing is invoiced on the
+strength of a phrase in an email body.
+
+The same tab answers the harder question — *which operators do we trade with
+that we have never set up?* — from the data rather than from memory. It groups
+the unrecognised bookings by sending domain, drops the consumer mailboxes (a
+family booking twice from Gmail is not a tour operator), and lists every
+business domain seen more than once with its volume and value. "Open account"
+carries the domain and a proposed name straight into the form.
+
+### Credit terms
+
+Each account carries five numbers, and the due date on every one of its
+bookings is derived from them rather than stored:
+
+| Term | Meaning |
+|---|---|
+| Payment terms (days) | Net days from the invoice date; 0 is payable on invoice |
+| Deposit (%) | Share of the total due up front; 0 means no deposit |
+| Deposit due (days before play) | Overrides the invoice terms for the deposit |
+| Balance due (days before play) | Overrides the invoice terms for the balance |
+| Credit limit | Most the account may owe at once; blank means none is enforced |
+
+A "days before play" rule wins where it is set, because that is what a tour
+operator contract actually says. With no such rule the invoice terms apply —
+counted from the invoice date, or from the play date while nothing has been
+invoiced, so a club that bills on departure still has a date to chase against.
+A single booking can override either date, for the one that was agreed
+differently.
+
+Three consequences worth knowing:
+
+- **The money decides the milestone, not the stored status.** A booking sits at
+  its deposit until what has been paid covers the deposit, then at its balance.
+  So a balance date inside the reminder window does not pull in a booking whose
+  deposit is still outstanding — the deposit date does, and it is usually
+  older.
+- **Overdue is never stored.** It is derived from the due date against today on
+  every read, because a stored "Overdue" is wrong the morning after it is
+  written.
+- **Exposure counts committed bookings only**, on the same rule the analytics
+  page uses for revenue. An open enquiry is not money an operator owes, and
+  counting it would put accounts over their credit limit on the strength of
+  business the club has not agreed to.
+
+The dashboard also reports when the recorded money and the typed payment status
+disagree — a booking marked `Unpaid` that is fully paid up — as a hint beside
+the figures. It never rewrites the status: the club's own record of what was
+agreed is not the dashboard's to overwrite.
+
+Deleting an account with bookings against it **retires** it instead. The
+history and the debt stay where they are; only an account with nothing on it is
+actually removed.
+
+### Operator reminders
+
+Two campaigns, one email per **account** rather than per booking — an operator
+with eleven open bookings wants one message listing eleven lines, which is how
+a trade partner reads their post.
+
+| Campaign | Who is listed | Window |
+|---|---|---|
+| Booking status | Their bookings that have not reached `Booked` | `OPERATOR_STATUS_REMINDER_DAYS` (21) of play dates ahead |
+| Payment due | Their committed bookings with money outstanding | `OPERATOR_PAYMENT_REMINDER_DAYS` (7) of due dates ahead, plus everything already late |
+
+Sending is always explicit: accounts are ticked, previewed with a dry run that
+renders exactly the data a real run would send, then sent. An account with
+bookings but no contact email is still listed — marked unsendable, because that
+is a gap somebody needs to fix rather than a silence.
+
+Every booking that went into an email is stamped. The guard is per booking and
+lasts seven days, which is the useful shape: an account chased last week about
+four bookings is not chased again tomorrow, but a fifth booking that has just
+fallen due pulls the account back into the list on its own. "Include recently
+chased" widens the list and flags which lines have already been written about.
+
+Sending needs `SENDGRID_API_KEY`, `FROM_EMAIL` and the two template IDs (see
+`.env.example`). The sender credentials are shared with the guest campaigns on
+purpose: a club that has configured SendGrid once should not have to do it
+again to chase an invoice.
+
+The template data carries the account (`operator_name`, `contact_name`,
+`credit_terms`, `credit_limit`, `credit_headroom`), the totals
+(`total_outstanding`, `total_overdue`, `days_overdue`, `earliest_due_date`) and
+the line items twice — as `bookings`, the array a handlebars `{{#each}}` walks
+to build a table, and as `booking_lines`, the same content preformatted for a
+plain-text part.
+
+### Payment on a booking
+
+The booking drawer gains a **Trade account & payment** panel: which account the
+booking sits on, what is owed and when, and fields for the payment status,
+amount paid, invoice number and invoice date. Clearing an override date hands
+that date back to the account's terms rather than leaving it blank.
+
+The exports carry the same columns — operator, payment status, amount paid,
+outstanding, due date, days overdue and invoice number — flattened onto the row,
+because that spreadsheet is what goes to the bookkeeper.
 
 ## Branding
 
@@ -141,6 +272,13 @@ grey. Re-run the validator before changing any value.
 | Sequential `#4a4c28 → #dec163` | heatmap magnitude | one hue (21° spread), monotone |
 | Categorical `#3987e5, #d95926, #199e70` | identity (courses) | all-pairs CVD ΔE 9.4, normal-vision ΔE 20.9 |
 | Delta `#2FB24A` / `#E8636B` | period-over-period | both clear 3:1 |
+
+The payment states are not a new ramp. They reuse the pipeline ramp for the one
+thing it was validated for — progress toward a finished state — with muted ink
+for nothing paid, the mid gold for a deposit and the light end for settled, plus
+the reserved slate for refunded and written off. `Overdue` is not one of them:
+it is derived, so it never appears alone, only beside the written day count
+(`4d late`), which is what carries the meaning.
 
 Three consequences worth knowing before editing:
 
