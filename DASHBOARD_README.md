@@ -97,6 +97,13 @@ Until that runs the two new pages say so and refuse politely; everything else �
 bookings, analytics, guest emails — is unaffected. `npm run check` reports
 whether an install has it.
 
+**No restart is needed.** The schema lookup caches a complete schema for the
+life of the process, but re-checks an incomplete one every 30 seconds, so a
+migration run against a live database is picked up on its own. If the page
+still reports the table missing a minute later, the dashboard is connected to a
+different database than the migration was run against — check `DATABASE_URL`
+against the project the SQL editor was pointed at.
+
 ### Identifying an operator
 
 A booking is attached to an account on one of three kinds of evidence, and they

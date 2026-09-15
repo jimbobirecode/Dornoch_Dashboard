@@ -124,8 +124,11 @@ export default function Operators() {
       <div className="stack">
         <h1>Tour Operators</h1>
         <div className="banner error">
-          {migration} Until then, bookings still load and the rest of the dashboard is unaffected.
+          {migration}
         </div>
+        <p className="secondary">
+          Until then, bookings still load and the rest of the dashboard is unaffected.
+        </p>
       </div>
     );
   }
