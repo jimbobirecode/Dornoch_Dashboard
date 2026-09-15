@@ -1,10 +1,13 @@
 /**
  * The booking pipeline as the SPA sees it.
  *
- * Colours are the gorse-gold ordinal ramp from `theme.css`, repeated here as
- * literals because Recharts needs a real colour for `fill`, not a CSS variable.
- * They must stay in step with the `--status-*` tokens.
+ * The colours live in `palette.js` — the one place the chart ramps are defined
+ * and validated — and are re-exported here so status consumers keep importing
+ * from a single module.
  */
+import { INK_MUTED, STATUS_COLORS } from './palette.js';
+
+export { STATUS_COLORS };
 export const PIPELINE_STAGES = ['Inquiry', 'Requested', 'Confirmed', 'Booked'];
 
 export const TERMINAL_STATUSES = ['Rejected', 'Cancelled'];
@@ -14,16 +17,7 @@ export const ALL_STATUSES = [...PIPELINE_STAGES, ...TERMINAL_STATUSES];
 /** Nothing is hidden until the reader asks for it to be. */
 export const DEFAULT_STATUS_FILTER = [...ALL_STATUSES];
 
-export const STATUS_COLORS = {
-  Inquiry: '#B8862B',
-  Requested: '#C9A227',
-  Confirmed: '#DEC163',
-  Booked: '#F0E0A6',
-  Rejected: '#DB4F7D',
-  Cancelled: '#93A9B8',
-};
-
-const UNKNOWN_COLOR = '#9BA894'; // --text-muted
+const UNKNOWN_COLOR = INK_MUTED;
 
 /** 'Pending' is the Streamlit-era spelling of 'Inquiry' and still in old rows. */
 export function normaliseStatus(status) {

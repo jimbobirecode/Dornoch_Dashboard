@@ -13,7 +13,8 @@
     "start": "node server/src/index.js",
     "postinstall": "echo ''",
     "seed": "node scripts/seed.mjs",
-    "check": "node scripts/check-install.mjs"
+    "check": "node scripts/check-install.mjs",
+    "test": "node --test server/test/*.test.js"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"
