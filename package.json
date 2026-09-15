@@ -1,0 +1,24 @@
+{
+  "name": "royal-dornoch-dashboard",
+  "private": true,
+  "version": "2.0.0",
+  "description": "Royal Dornoch Golf Club visitor bookings dashboard",
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c yellow,cyan \"npm run dev -w server\" \"npm run dev -w web\"",
+    "build": "npm run build -w web",
+    "start": "node server/src/index.js",
+    "postinstall": "echo ''",
+    "seed": "node scripts/seed.mjs",
+    "check": "node scripts/check-install.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "engines": {
+    "node": ">=20 <25"
+  }
+}
