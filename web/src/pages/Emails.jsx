@@ -20,6 +20,12 @@ const CAMPAIGNS = [
  * are picked, previewed with a dry run, then sent. Guests already emailed stay
  * in the list, unticked and stamped with when they were written to, so a
  * deliberate resend is possible and an accidental one is not.
+ *
+ * Where Club Vero is connected, the thank-you also carries that guest's survey
+ * link. The page says so rather than leaving it to the environment: a campaign
+ * whose emails carry a link behaves differently when Vero cannot be reached —
+ * the send is held rather than going out with a dead button — and somebody
+ * reading a run's results needs to know which mode they are in.
  */
 export default function Emails() {
   const [campaignId, setCampaignId] = useState(CAMPAIGNS[0].id);
@@ -73,6 +79,11 @@ export default function Emails() {
   const unsentCount = useMemo(() => bookings.filter((b) => !b.sentAt).length, [bookings]);
   const ready = Boolean(config?.campaigns?.[campaignId]?.configured && config?.hasApiKey && config?.fromEmail);
   const untracked = config && config.tracking?.[campaignId] === false;
+  const vero = config?.vero ?? null;
+  // Connected AND switched on for the campaign on screen. Those are different
+  // questions: pre-arrival deliberately carries no survey link even when the
+  // integration is running.
+  const veroOn = Boolean(vero?.enabled && vero.campaigns?.includes(campaignId));
 
   function toggle(bookingId) {
     setSelected((current) => {
@@ -115,12 +126,18 @@ export default function Emails() {
       if (dryRun) {
         setNotice({
           kind: 'success',
-          text: `Preview: ${payload.results.filter((r) => r.status === 'would_send').length} email(s) would be sent, ${payload.failed} would be skipped.`,
+          text: `Preview: ${payload.results.filter((r) => r.status === 'would_send').length} email(s) would be sent, ${
+            payload.failed
+          } would fail${payload.skipped ? `, ${payload.skipped} would be skipped (unsubscribed)` : ''}.`,
         });
       } else {
         setNotice({
           kind: payload.failed && !payload.sent ? 'error' : 'success',
-          text: `Sent ${payload.sent} email(s)${payload.failed ? `, ${payload.failed} failed` : ''}.${
+          text: `Sent ${payload.sent} email(s)${payload.failed ? `, ${payload.failed} failed` : ''}${
+            // Named separately from the failures, because it is not one: these
+            // guests asked not to be contacted and were not.
+            payload.skipped ? `, ${payload.skipped} skipped (unsubscribed)` : ''
+          }.${
             payload.tracked === false ? ' Sends could not be recorded — run the email tracking migration.' : ''
           }`,
         });
@@ -159,6 +176,13 @@ export default function Emails() {
         <div className="banner error">
           Email sending is not configured. Set {config.missing.join(', ')} in the environment,
           then restart the dashboard.
+        </div>
+      )}
+
+      {vero?.enabled === false && vero.campaigns?.includes(campaignId) === true && (
+        <div className="banner error">
+          Club Vero is meant to carry the survey link on this campaign, but it is not configured.
+          Set {vero.missing.join(', ')} in the environment, then restart the dashboard.
         </div>
       )}
 
@@ -210,6 +234,18 @@ export default function Emails() {
           value={ready ? 'Ready' : 'Not set'}
           sub={config?.fromEmail ? `From ${config.fromEmail}` : 'No sender address'}
           accent={ready ? 'var(--status-booked)' : 'var(--status-rejected)'}
+        />
+        <KpiTile
+          label="Club Vero"
+          value={veroOn ? 'Linked' : 'Not linked'}
+          sub={
+            veroOn
+              ? 'Each email carries that guest’s survey link'
+              : vero?.enabled
+                ? 'Connected, but not on this campaign'
+                : 'Feedback is not collected anywhere'
+          }
+          accent={veroOn ? 'var(--links-green)' : 'var(--muted, #8a8a8a)'}
         />
       </div>
 
@@ -320,7 +356,7 @@ export default function Emails() {
                   <tr key={row.bookingId}>
                     <td className="mono">{row.bookingId}</td>
                     <td>{row.email ?? '—'}</td>
-                    <td style={{ color: row.status === 'failed' ? 'var(--status-rejected)' : undefined }}>
+                    <td style={{ color: row.status === 'failed' ? 'var(--status-rejected)' : undefined }} className={row.status === 'skipped' ? 'muted' : undefined}>
                       {OUTCOME_LABELS[row.status] ?? row.status}
                     </td>
                     <td className="secondary">{row.message}</td>
@@ -341,12 +377,13 @@ export default function Emails() {
  * rather than push the rest at SendGrid anyway.
  */
 async function sendInBatches(campaignId, ids, dryRun) {
-  const merged = { dryRun, sent: 0, failed: 0, tracked: true, results: [] };
+  const merged = { dryRun, sent: 0, failed: 0, skipped: 0, tracked: true, results: [] };
 
   for (let index = 0; index < ids.length; index += BATCH_SIZE) {
     const payload = await api.sendCampaign(campaignId, ids.slice(index, index + BATCH_SIZE), { dryRun });
     merged.sent += payload.sent;
     merged.failed += payload.failed;
+    merged.skipped += payload.skipped ?? 0;
     if (payload.tracked === false) merged.tracked = false;
     merged.results.push(...payload.results);
   }
@@ -358,4 +395,7 @@ const OUTCOME_LABELS = {
   sent: 'Sent',
   failed: 'Failed',
   would_send: 'Would send',
+  // Not a failure. The guest unsubscribed from feedback requests, and Club Vero
+  // said so before the email went out.
+  skipped: 'Skipped',
 };
