@@ -9,6 +9,7 @@ import cors from 'cors';
 import authRoutes from './routes/auth.js';
 import bookingRoutes from './routes/bookings.js';
 import analyticsRoutes from './routes/analytics.js';
+import emailRoutes from './routes/emails.js';
 import { pool } from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -36,6 +37,7 @@ app.get('/api/health', async (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/emails', emailRoutes);
 
 const distDir = path.resolve(__dirname, '../../web/dist');
 if (fs.existsSync(distDir)) {

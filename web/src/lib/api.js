@@ -67,6 +67,12 @@ export const api = {
 
   analytics: ({ from, to, granularity } = {}) =>
     request(`/analytics${queryString({ from, to, granularity })}`),
+
+  emailConfig: () => request('/emails/config'),
+  emailPending: (campaign, scope) =>
+    request(`/emails/pending${queryString({ campaign, scope })}`),
+  sendCampaign: (campaign, bookingIds, { dryRun = false } = {}) =>
+    request('/emails/send', { method: 'POST', body: { campaign, bookingIds, dryRun } }),
 };
 
 /**

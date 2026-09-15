@@ -6,7 +6,7 @@ uses. No schema change and no data migration — this is a front-end and API
 replacement that can run alongside `dashboard.py` against the same database.
 
 ```
-server/   Express API (auth, bookings, analytics, exports)
+server/   Express API (auth, bookings, analytics, exports, guest emails)
 web/      React + Vite SPA (bookings table, detail drawer, charts)
 scripts/  seed + read-only compatibility check
 ```
@@ -30,7 +30,8 @@ npm run build && npm start   # production, single origin on :3001
 
 Bookings list and filtering, the `Inquiry → Requested → Confirmed → Booked`
 pipeline, status/note/tee-time edits, delete, tee-time extraction from email
-bodies, CSV and Excel export, and Reports & Analytics.
+bodies, CSV and Excel export, Reports & Analytics, and the customer-journey
+guest emails.
 
 Beyond the Streamsong-era fields it also surfaces this install's later columns:
 the hosted booking form's **guest details** (lead guest, phone, caddies,
@@ -39,8 +40,43 @@ type, preferences, cost, resort fee). Columns are detected at runtime, so an
 un-migrated database still loads — the same tolerance
 `modules/database/bookings.py` has.
 
-**Not ported:** Customer Journey Emails, the waitlist, and pro-shop items.
-Those remain in the Streamlit app.
+**Not ported:** the waitlist and pro-shop items. Those remain in the Streamlit
+app.
+
+## Guest Emails
+
+The two customer-journey campaigns from `modules/customer_journey/emails.py`,
+sent from the dashboard rather than a cron job:
+
+| Campaign | When | Template |
+|---|---|---|
+| Pre-arrival welcome | `PRE_ARRIVAL_DAYS` (default 3) before the play date | `SENDGRID_TEMPLATE_PRE_ARRIVAL` |
+| Post-play thank you | `POST_PLAY_DAYS` (default 2) after the play date | `SENDGRID_TEMPLATE_POST_PLAY` |
+
+Only `Confirmed` and `Booked` bookings are ever listed. The page opens on the
+guests due today and can widen to all upcoming play (welcomes) or the last 30
+days (thank yous). Rows are ticked, previewed with a dry run that renders the
+same template data without contacting SendGrid, then sent; a guest who has
+already been written to stays listed with the timestamp, unticked, so a resend
+has to be asked for.
+
+Sending needs five environment variables — `SENDGRID_API_KEY`, `FROM_EMAIL`,
+`FROM_NAME` and the two template IDs (see `.env.example`). Without them the
+page still lists who is due and names what is missing, but cannot send.
+
+De-duplication needs the tracking columns:
+
+```bash
+psql "$DATABASE_URL" -f migration_add_journey_emails.sql
+```
+
+Without them the emails still go out, and the page warns that a guest could be
+written to twice.
+
+The dynamic-template field names — `guest_name`, `booking_date`, `course_name`,
+`tee_time`, `player_count`, `booking_reference` and the older `play_date` /
+`booking_ref` spellings — match the Streamlit implementation exactly, so the
+existing SendGrid templates work unchanged.
 
 ## Branding
 
@@ -149,5 +185,6 @@ A separate Render service from the Streamlit one, against the same database:
 `--include=dev` is required: Render sets `NODE_ENV=production`, which makes npm
 skip devDependencies, and `vite` is one of them.
 
-Set `DATABASE_URL` and a fresh `JWT_SECRET`. `SEED_ON_START=true` seeds sample
+Set `DATABASE_URL` and a fresh `JWT_SECRET`, plus the SendGrid variables above
+if the Guest Emails page should be able to send. `SEED_ON_START=true` seeds sample
 data at boot for hosts without shell access; it skips when real bookings exist.
