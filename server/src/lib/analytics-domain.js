@@ -6,6 +6,15 @@
  * one question the golf office actually asks; `buildAnalytics` composes them.
  */
 import { PIPELINE_STAGES, TERMINAL_STATUSES, normaliseStatus } from './bookings-domain.js';
+import {
+  AGEING_BANDS,
+  CLOSED_PAYMENT_STATUSES,
+  PAYMENT_STATUSES,
+  ageingBand,
+  emailDomain,
+  isConsumerDomain,
+  normalisePaymentStatus,
+} from './operators-domain.js';
 
 /** Revenue is only counted once a booking is actually committed. */
 const COMMITTED = new Set(['Confirmed', 'Booked']);
@@ -462,7 +471,450 @@ export function buildBusiestDays(bookings) {
   }));
 }
 
-export function buildAnalytics(bookings, { granularity = 'day', previous = null } = {}) {
+/* ---------- the fields later migrations added ---------- */
+
+/**
+ * Where the money actually is, on the bookings this club has committed to.
+ *
+ * `total` is what the booking is worth, `amountPaid` what has landed. Neither
+ * an invoice number nor a due date means anything on an install that has not
+ * run `migration_add_tour_operators.sql`, so `tracked` says whether any row in
+ * the period carries payment state at all — the page shows the section only
+ * when there is something real behind it.
+ */
+export function buildPaymentHealth(bookings, { today = todayIso() } = {}) {
+  const committed = bookings.filter((booking) => COMMITTED.has(booking.status));
+  const tracked = bookings.some(
+    (booking) =>
+      num(booking.amountPaid) > 0 ||
+      booking.invoiceNumber ||
+      booking.invoicedAt ||
+      booking.depositDueDate ||
+      booking.balanceDueDate ||
+      (booking.paymentStatus && booking.paymentStatus !== 'Unpaid'),
+  );
+
+  const byStatus = PAYMENT_STATUSES.map((status) => {
+    const group = committed.filter((booking) => paymentStatusOf(booking) === status);
+    return {
+      key: status,
+      count: group.length,
+      gross: round2(sum(group, 'total')),
+      paid: round2(sum(group, 'amountPaid')),
+      outstanding: round2(group.reduce((total, booking) => total + outstandingOn(booking), 0)),
+    };
+  });
+
+  const overdue = committed
+    .filter((booking) => outstandingOn(booking) > 0)
+    .map((booking) => ({ booking, due: dueDateOf(booking) }))
+    .filter(({ due }) => due && due < today)
+    .map(({ booking, due }) => ({ booking, days: daysBetweenDates(due, today) }));
+
+  const ageing = AGEING_BANDS.filter((band) => band.id !== 'current').map((band) => ({
+    key: band.label,
+    count: overdue.filter(({ days }) => ageingBand(days) === band.id).length,
+    amount: round2(
+      overdue
+        .filter(({ days }) => ageingBand(days) === band.id)
+        .reduce((total, { booking }) => total + outstandingOn(booking), 0),
+    ),
+  }));
+
+  const gross = sum(committed, 'total');
+  const paid = sum(committed, 'amountPaid');
+  const invoiced = committed.filter((booking) => booking.invoiceNumber || booking.invoicedAt);
+
+  return {
+    tracked,
+    bookings: committed.length,
+    gross: round2(gross),
+    paid: round2(paid),
+    outstanding: round2(committed.reduce((total, booking) => total + outstandingOn(booking), 0)),
+    collectionRate: round1(gross ? (paid / gross) * 100 : 0),
+    invoiced: invoiced.length,
+    invoicedRate: round1(committed.length ? (invoiced.length / committed.length) * 100 : 0),
+    overdue: overdue.length,
+    overdueAmount: round2(
+      overdue.reduce((total, { booking }) => total + outstandingOn(booking), 0),
+    ),
+    byStatus,
+    ageing,
+  };
+}
+
+/**
+ * Trade against direct, and which accounts carry the book.
+ *
+ * A booking is trade when it has been matched to a tour operator; `names` maps
+ * those ids to account names so the chart reads as accounts rather than as
+ * numbers. Without the operators table every booking is direct, which is the
+ * honest answer for an install that does not use one.
+ */
+export function buildTradeMix(bookings, { names = new Map() } = {}) {
+  const trade = bookings.filter((booking) => booking.tourOperatorId !== null && booking.tourOperatorId !== undefined);
+  const direct = bookings.filter((booking) => booking.tourOperatorId === null || booking.tourOperatorId === undefined);
+
+  const byId = new Map();
+  for (const booking of trade) {
+    const id = booking.tourOperatorId;
+    const row = byId.get(id) ?? {
+      key: names.get(id) ?? names.get(String(id)) ?? `Account ${id}`,
+      id,
+      count: 0,
+      players: 0,
+      revenue: 0,
+      committed: 0,
+    };
+    row.count += 1;
+    row.players += num(booking.players);
+    if (COMMITTED.has(booking.status)) {
+      row.committed += 1;
+      row.revenue += num(booking.total);
+    }
+    byId.set(id, row);
+  }
+
+  return {
+    channels: [channel('Direct', direct), channel('Trade', trade)],
+    tradeShare: round1(bookings.length ? (trade.length / bookings.length) * 100 : 0),
+    operators: [...byId.values()]
+      .map((row) => ({
+        ...row,
+        revenue: round2(row.revenue),
+        conversion: round1(row.count ? (row.committed / row.count) * 100 : 0),
+      }))
+      .sort((a, b) => b.revenue - a.revenue || b.count - a.count)
+      .slice(0, 8),
+  };
+}
+
+function channel(key, group) {
+  const committed = group.filter((booking) => COMMITTED.has(booking.status));
+  const revenue = sum(committed, 'total');
+  return {
+    key,
+    count: group.length,
+    players: sum(group, 'players'),
+    revenue: round2(revenue),
+    averageValue: round2(committed.length ? revenue / committed.length : 0),
+    averageParty: round1(group.length ? sum(group, 'players') / group.length : 0),
+    conversion: round1(group.length ? (committed.length / group.length) * 100 : 0),
+  };
+}
+
+/**
+ * The bed side of a golf trip: how long parties stay, how many rooms they
+ * take, and what the stay is worth beside the golf.
+ *
+ * The revenue split treats `total` as the whole booking, so green fees are
+ * what is left after the lodging and the resort fee — a booking that records
+ * neither reads as all golf, which is what it is.
+ */
+export function buildLodging(bookings) {
+  const withStay = bookings.filter((booking) => booking.hotelRequired);
+  const committed = bookings.filter((booking) => COMMITTED.has(booking.status));
+
+  const nights = withStay.map((booking) => nullableNum(booking.lodgingNights)).filter((value) => value !== null);
+  const roomNights = withStay.reduce(
+    (total, booking) => total + num(booking.lodgingNights) * Math.max(num(booking.lodgingRooms), 1),
+    0,
+  );
+
+  const lodgingRevenue = committed.reduce((total, booking) => total + num(booking.lodgingCost), 0);
+  const resortFees = committed.reduce((total, booking) => total + num(booking.resortFeeTotal), 0);
+  const gross = sum(committed, 'total');
+
+  const roomTypes = new Map();
+  for (const booking of withStay) {
+    const type = String(booking.lodgingRoomType ?? '').trim();
+    if (!type) continue;
+    const row = roomTypes.get(type) ?? { key: type, count: 0, rooms: 0, nights: 0 };
+    row.count += 1;
+    row.rooms += num(booking.lodgingRooms);
+    row.nights += num(booking.lodgingNights);
+    roomTypes.set(type, row);
+  }
+
+  return {
+    // Anything to say at all: a stay recorded with some detail on it.
+    detailed: nights.length > 0 || roomTypes.size > 0 || lodgingRevenue > 0,
+    parties: withStay.length,
+    nightsTotal: nights.reduce((total, value) => total + value, 0),
+    averageNights: nights.length ? round1(mean(nights)) : null,
+    medianNights: median(nights),
+    roomNights,
+    rooms: withStay.reduce((total, booking) => total + num(booking.lodgingRooms), 0),
+    nightsDistribution: bucketNights(nights),
+    roomTypes: [...roomTypes.values()].sort((a, b) => b.count - a.count),
+    revenueMix: [
+      { key: 'Golf', value: round2(Math.max(gross - lodgingRevenue - resortFees, 0)) },
+      { key: 'Lodging', value: round2(lodgingRevenue) },
+      { key: 'Resort fees', value: round2(resortFees) },
+    ].filter((row) => row.value > 0),
+    lodgingRevenue: round2(lodgingRevenue),
+    resortFees: round2(resortFees),
+  };
+}
+
+const NIGHT_BUCKETS = [
+  { key: '1 night', min: 1, max: 1 },
+  { key: '2 nights', min: 2, max: 2 },
+  { key: '3 nights', min: 3, max: 3 },
+  { key: '4 nights', min: 4, max: 4 },
+  { key: '5+ nights', min: 5, max: Infinity },
+];
+
+function bucketNights(nights) {
+  return NIGHT_BUCKETS.map(({ key, min, max }) => ({
+    key,
+    count: nights.filter((value) => value >= min && value <= max).length,
+  }));
+}
+
+/**
+ * Caddie demand, read off the free-text field the enquiry form writes.
+ *
+ * "For all players" is the most common answer and carries no number, so the
+ * estimate falls back to the party size — it is an estimate, and the card says
+ * so rather than presenting it as a booking count.
+ */
+export function buildCaddieDemand(bookings) {
+  const rows = { Requested: [], 'Not required': [], 'Not specified': [] };
+  for (const booking of bookings) {
+    rows[classifyCaddie(booking.caddieRequirements)].push(booking);
+  }
+
+  const requested = rows.Requested;
+  const estimated = requested.reduce((total, booking) => total + caddieCount(booking), 0);
+
+  return {
+    recorded: bookings.length - rows['Not specified'].length,
+    distribution: Object.entries(rows).map(([key, group]) => ({
+      key,
+      count: group.length,
+      players: sum(group, 'players'),
+    })),
+    requested: requested.length,
+    attachRate: round1(bookings.length ? (requested.length / bookings.length) * 100 : 0),
+    estimatedCaddies: estimated,
+    playersInRequests: sum(requested, 'players'),
+  };
+}
+
+/** Three answers the field actually gives, from text that is never structured. */
+export function classifyCaddie(text) {
+  const value = String(text ?? '').trim().toLowerCase();
+  if (!value || value === 'none' || value === 'n/a' || value === '-') return 'Not specified';
+  if (/\b(no|not)\b(?!\w)/.test(value) && !/\bnumber\b/.test(value)) {
+    // "no caddies", "not required" — but never "no. of caddies: 4".
+    if (/\bno\.\s*\d|\bno\.\s*of\b/.test(value)) return 'Requested';
+    return 'Not required';
+  }
+  return 'Requested';
+}
+
+/** The number in the text, or the party size when it asks for everyone. */
+function caddieCount(booking) {
+  const text = String(booking.caddieRequirements ?? '');
+  const match = text.match(/(\d+)/);
+  if (match) return Number(match[1]);
+  if (/\ball\b|\beach\b|\bevery\b/i.test(text)) return num(booking.players);
+  return 1;
+}
+
+/**
+ * What people write in the free-text fields, grouped into the handful of
+ * themes the office actually acts on.
+ *
+ * Keyword matching, deliberately: a booking counts toward every theme it
+ * mentions, so these do not sum to the total, and a request nobody has a word
+ * for lands in none of them. It is a reading aid for the notes, not a
+ * classification of them.
+ */
+export const REQUEST_THEMES = [
+  { key: 'Caddies', pattern: /caddie|caddy|looper/i },
+  { key: 'Buggy or cart', pattern: /buggy|buggies|cart\b|golf car/i },
+  { key: 'Trolley', pattern: /trolley|trolly|push cart/i },
+  { key: 'Club hire', pattern: /club hire|hire clubs|rental club|club rental|hire set/i },
+  { key: 'Transport', pattern: /transfer|taxi|coach|minibus|pick ?up|airport|chauffeur/i },
+  { key: 'Dining', pattern: /lunch|dinner|breakfast|meal|restaurant|catering|table for/i },
+  { key: 'Dietary', pattern: /gluten|vegetarian|vegan|allerg|dietary|coeliac|celiac/i },
+  { key: 'Celebration', pattern: /birthday|anniversary|honeymoon|celebrat|stag|retirement|wedding/i },
+  { key: 'Accessibility', pattern: /wheelchair|mobility|disabled|buggy permit|medical|accessib/i },
+  { key: 'Playing together', pattern: /play(ing)? together|same (group|tee|time)|one group|as a (group|four)/i },
+  { key: 'Early tee time', pattern: /early (tee|start|morning)|first tee of|as early/i },
+  { key: 'Late tee time', pattern: /late (tee|start|afternoon)|afternoon tee|as late/i },
+];
+
+export function buildRequestThemes(bookings) {
+  const texts = bookings.map(
+    (booking) =>
+      `${booking.specialRequests ?? ''} ${booking.caddieRequirements ?? ''} ${booking.lodgingPreferences ?? ''}`.trim(),
+  );
+  const withText = texts.filter(Boolean);
+
+  return {
+    withRequests: withText.length,
+    rate: round1(bookings.length ? (withText.length / bookings.length) * 100 : 0),
+    themes: REQUEST_THEMES.map(({ key, pattern }) => ({
+      key,
+      count: withText.filter((text) => pattern.test(text)).length,
+    }))
+      .filter((row) => row.count > 0)
+      .sort((a, b) => b.count - a.count),
+  };
+}
+
+/**
+ * Who is booking: how many are coming back, and whether the address looks like
+ * a person or a business.
+ *
+ * "Returning" is only ever within the selected period — this aggregation never
+ * sees the rest of the book — so the card says "in this period" rather than
+ * claiming a lifetime loyalty number it cannot know.
+ */
+export function buildGuestMix(bookings) {
+  const byEmail = new Map();
+  let anonymous = 0;
+
+  for (const booking of bookings) {
+    const email = String(booking.guestEmail ?? '').trim().toLowerCase();
+    if (!email) {
+      anonymous += 1;
+      continue;
+    }
+
+    const row = byEmail.get(email) ?? {
+      key: booking.guestName || email,
+      email,
+      count: 0,
+      players: 0,
+      revenue: 0,
+    };
+    row.count += 1;
+    row.players += num(booking.players);
+    if (COMMITTED.has(booking.status)) row.revenue += num(booking.total);
+    byEmail.set(email, row);
+  }
+
+  const guests = [...byEmail.values()];
+  const returning = guests.filter((guest) => guest.count > 1);
+
+  let business = 0;
+  for (const guest of guests) {
+    const domain = emailDomain(guest.email);
+    if (domain && !isConsumerDomain(domain)) business += 1;
+  }
+
+  return {
+    guests: guests.length,
+    anonymous,
+    returning: returning.length,
+    repeatRate: round1(guests.length ? (returning.length / guests.length) * 100 : 0),
+    bookingsFromReturning: returning.reduce((total, guest) => total + guest.count, 0),
+    business,
+    consumer: guests.length - business,
+    top: guests
+      .map((guest) => ({ ...guest, revenue: round2(guest.revenue) }))
+      .sort((a, b) => b.count - a.count || b.revenue - a.revenue)
+      .slice(0, 8),
+  };
+}
+
+/** Ordered buckets, so the axis reads fast to slow. */
+export const RESPONSE_BUCKETS = [
+  { key: 'Under 1 hour', max: 1 },
+  { key: '1–4 hours', max: 4 },
+  { key: '4–24 hours', max: 24 },
+  { key: '1–3 days', max: 72 },
+  { key: '3–7 days', max: 168 },
+  { key: 'Over a week', max: Infinity },
+];
+
+/**
+ * How long an enquiry waits before it is answered.
+ *
+ * The clock starts when the form was submitted and stops when the booking was
+ * confirmed by the guest, or failing that when the row was last touched while
+ * committed. Rows that were never answered are counted as outstanding rather
+ * than folded in as an enormous response time.
+ */
+export function buildResponseTimes(bookings) {
+  const hours = [];
+  let unanswered = 0;
+
+  for (const booking of bookings) {
+    const asked = Date.parse(booking.formSubmittedAt ?? booking.timestamp ?? '');
+    if (Number.isNaN(asked)) continue;
+
+    const answeredAt = booking.customerConfirmedAt
+      ?? (COMMITTED.has(booking.status) || TERMINAL_STATUSES.includes(booking.status)
+        ? booking.updatedAt
+        : null);
+    const answered = Date.parse(answeredAt ?? '');
+
+    if (Number.isNaN(answered) || answered < asked) {
+      unanswered += 1;
+      continue;
+    }
+    hours.push((answered - asked) / 3_600_000);
+  }
+
+  const distribution = RESPONSE_BUCKETS.map(({ key }) => ({ key, count: 0 }));
+  for (const value of hours) {
+    distribution[RESPONSE_BUCKETS.findIndex((bucket) => value <= bucket.max)].count += 1;
+  }
+
+  return {
+    answered: hours.length,
+    unanswered,
+    distribution,
+    medianHours: hours.length ? round1(medianOf(hours)) : null,
+    averageHours: hours.length ? round1(mean(hours)) : null,
+    withinDay: round1(hours.length ? (hours.filter((value) => value <= 24).length / hours.length) * 100 : 0),
+  };
+}
+
+/**
+ * Whether the customer-journey campaigns actually reached the bookings they
+ * were meant to.
+ *
+ * Pre-arrival is owed to every committed booking; post-play only once the
+ * round has been played, so a future tee date is not counted as a miss.
+ */
+export function buildEmailCoverage(bookings, { today = todayIso() } = {}) {
+  const committed = bookings.filter((booking) => COMMITTED.has(booking.status) && booking.date);
+  const played = committed.filter((booking) => booking.date <= today);
+
+  const campaign = (label, eligible, field) => {
+    const sent = eligible.filter((booking) => booking[field]).length;
+    return {
+      key: label,
+      eligible: eligible.length,
+      sent,
+      missed: eligible.length - sent,
+      rate: round1(eligible.length ? (sent / eligible.length) * 100 : 0),
+    };
+  };
+
+  const rows = [
+    campaign('Pre-arrival welcome', committed, 'preArrivalEmailSentAt'),
+    campaign('Post-play thank you', played, 'postPlayEmailSentAt'),
+  ];
+
+  return {
+    // An install without migration_add_journey_emails.sql has no column to
+    // read, so every row looks unsent; saying nothing beats saying zero.
+    tracked: bookings.some((booking) => booking.preArrivalEmailSentAt || booking.postPlayEmailSentAt),
+    campaigns: rows,
+  };
+}
+
+export function buildAnalytics(
+  bookings,
+  { granularity = 'day', previous = null, today = todayIso(), operatorNames = new Map() } = {},
+) {
   return {
     granularity: GRANULARITIES.includes(granularity) ? granularity : 'day',
     totals: buildTotals(bookings, previous),
@@ -476,6 +928,19 @@ export function buildAnalytics(bookings, { granularity = 'day', previous = null 
     requestUtilisation: buildRequestUtilisation(bookings),
     popularTeeTimes: buildPopularTeeTimes(bookings),
     busiestDays: buildBusiestDays(bookings),
+
+    // Everything the later migrations made available. Each section carries its
+    // own "is there anything here" flag, so an install that does not use tour
+    // operators, lodging detail or the journey emails is told that rather than
+    // shown a wall of zeroes.
+    payments: buildPaymentHealth(bookings, { today }),
+    trade: buildTradeMix(bookings, { names: operatorNames }),
+    lodging: buildLodging(bookings),
+    caddies: buildCaddieDemand(bookings),
+    requestThemes: buildRequestThemes(bookings),
+    guests: buildGuestMix(bookings),
+    responseTimes: buildResponseTimes(bookings),
+    emailCoverage: buildEmailCoverage(bookings, { today }),
   };
 }
 
@@ -508,11 +973,55 @@ function percentChange(before, after) {
   return round1(((after - before) / before) * 100);
 }
 
+/** Whole days, the way the lead-time and nights figures are read. */
 function median(values) {
+  const exact = medianOf(values);
+  return exact === null ? null : Math.round(exact);
+}
+
+/** The unrounded median, for the figures where a half matters. */
+function medianOf(values) {
   if (!values.length) return null;
   const sorted = [...values].sort((a, b) => a - b);
   const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[middle] : Math.round((sorted[middle - 1] + sorted[middle]) / 2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+/** Today in the club's own calendar, so "overdue" means overdue here. */
+function todayIso(now = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(now);
+}
+
+function daysBetweenDates(from, to) {
+  const start = Date.parse(`${from}T00:00:00Z`);
+  const end = Date.parse(`${to}T00:00:00Z`);
+  if (Number.isNaN(start) || Number.isNaN(end)) return 0;
+  return Math.round((end - start) / 86_400_000);
+}
+
+function paymentStatusOf(booking) {
+  return normalisePaymentStatus(booking.paymentStatus);
+}
+
+/**
+ * What is still owed on one booking. A refunded or written-off booking owes
+ * nothing however the arithmetic reads, which is the whole point of those two
+ * states.
+ */
+function outstandingOn(booking) {
+  if (CLOSED_PAYMENT_STATUSES.includes(paymentStatusOf(booking))) return 0;
+  return Math.max(num(booking.total) - num(booking.amountPaid), 0);
+}
+
+/** The date the money was due: the balance where there is one, else the deposit. */
+function dueDateOf(booking) {
+  return booking.balanceDueDate ?? booking.depositDueDate ?? null;
+}
+
+function nullableNum(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 const sumBy = (items, key) => items.reduce((total, item) => total + item[key], 0);

@@ -45,6 +45,18 @@ export const api = {
   changePassword: (newPassword) =>
     request('/auth/change-password', { method: 'POST', body: { newPassword } }),
 
+  // Password reset. All three are reachable signed out, which is the point.
+  resetConfig: () => request('/auth/reset-config'),
+  forgotPassword: (username) =>
+    request('/auth/forgot-password', { method: 'POST', body: { username } }),
+  checkResetToken: (token) =>
+    request('/auth/reset-password/check', { method: 'POST', body: { token } }),
+  resetPassword: (token, newPassword, confirmPassword) =>
+    request('/auth/reset-password', {
+      method: 'POST',
+      body: { token, newPassword, confirmPassword },
+    }),
+
   bookings: () => request('/bookings'),
   setStatus: (bookingId, status) =>
     request(`/bookings/${encodeURIComponent(bookingId)}/status`, {

@@ -133,6 +133,24 @@ async function main() {
       }
     }
 
+    console.log('\nPassword reset');
+    const hasResets = await tableExists(client, 'password_resets');
+    if (hasResets && userCols.has('email')) {
+      const { rows: [{ addressed, users }] } = await client.query(
+        `SELECT COUNT(*) FILTER (WHERE email IS NOT NULL OR username LIKE '%@%.%')::int AS addressed,
+                COUNT(*)::int AS users
+           FROM public.dashboard_users`,
+      );
+      ok(`public.password_resets exists — ${addressed} of ${users} account(s) have somewhere to send a reset link`);
+      if (addressed < users) {
+        warn(`${users - addressed} account(s) have no email address — set dashboard_users.email for them or they cannot reset their own password`);
+      }
+    } else {
+      // Not a failure: sign-in works without it, the login screen simply does
+      // not offer the reset link.
+      warn('password reset is unavailable — run migration_add_password_reset.sql to add dashboard_users.email and public.password_resets');
+    }
+
     console.log('\nStatus values');
     const { rows: statusRows } = await client.query(
       'SELECT DISTINCT status FROM public.bookings WHERE status IS NOT NULL',

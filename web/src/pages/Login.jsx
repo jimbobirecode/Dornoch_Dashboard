@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { api } from '../lib/api.js';
 import Wordmark from '../components/Wordmark.jsx';
 
 export default function Login({ onLogin }) {
@@ -6,6 +8,20 @@ export default function Login({ onLogin }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  // Offered only where a click would actually produce an email: the migration
+  // has been run and SendGrid is configured.
+  const [canReset, setCanReset] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .resetConfig()
+      .then((config) => !cancelled && setCanReset(Boolean(config.available)))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -52,6 +68,16 @@ export default function Login({ onLogin }) {
         <button type="submit" className="btn-primary" disabled={busy}>
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
+
+        {canReset && (
+          <Link
+            to="/forgot-password"
+            className="muted"
+            style={{ fontSize: '0.8125rem', textAlign: 'center' }}
+          >
+            Forgot your password?
+          </Link>
+        )}
       </form>
     </div>
   );
