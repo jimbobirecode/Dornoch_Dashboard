@@ -240,12 +240,23 @@ a database (`npm test`).
 | Party size | Where the volume and the money sit, by players per booking |
 | Course mix | Championship vs Struie vs unrecorded |
 | Accommodation | Attach rate, and basket size with a stay against golf-only |
-| Tee sheet utilisation | Weekday against time-of-day band |
+| Booking request utilisation | Weekday against time-of-day band, counting what enquiries **asked for** beside what was actually **booked**: requested, converted, lost, still open, conversion rate, and the parties whose tee sheet slot is not the one they asked for |
+| Asked for, not booked | The slots with the most demand that never became a booking |
+| Moved to another slot | Where the sheet put parties that asked for a different band |
 
-Two things the numbers deliberately do **not** do. Revenue counts only
-`Confirmed` and `Booked`, so an open enquiry never inflates it. And course mix
+Three things the numbers deliberately do **not** do. Revenue counts only
+`Confirmed` and `Booked`, so an open enquiry never inflates it. Course mix
 counts a booking naming both courses toward each, so those rows do not sum to
-the total — the card says so on its face.
+the total — the card says so on its face. And on the request grid, a slot's
+"asked for" count and its "on the sheet" count are separate tallies rather than
+two views of one number: an enquiry is counted on the slot it *requested*
+(`selected_tee_times` where the form recorded it, otherwise `tee_time`),
+whatever became of it, while a booking is counted on the slot the sheet
+actually carries. A party that asked for 08:00 and plays 14:30 therefore
+appears in both, which is what makes "demand we did not satisfy here" legible
+at all — a grid of confirmed bookings alone cannot tell a slot nobody wants
+from a slot everybody walks away from. Rows with no usable date or time are
+left off the grid and reported as a count beside it.
 
 The comparison window is the same length immediately before the selected range,
 so "next 90 days" is judged against the 90 days before it. Where the previous

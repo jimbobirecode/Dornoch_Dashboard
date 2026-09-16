@@ -7,11 +7,24 @@ import { ChartTooltip } from './ChartTooltip.jsx';
  * colour job is sequential: one hue, more-is-brighter.
  *
  * An empty slot is drawn as bare surface with a hairline rather than as the
- * ramp's darkest step, so "nobody booked this" and "almost nobody booked this"
- * never look the same. Every cell is focusable and reports its own numbers, so
- * the grid is readable without hovering and without colour.
+ * ramp's darkest step, so "nobody asked for this" and "almost nobody asked for
+ * this" never look the same. Every cell is focusable and reports its own
+ * numbers, so the grid is readable without hovering and without colour.
+ *
+ * `valueKey` picks which number drives the fill, so one grid can be read as
+ * demand, as bookings or as a conversion rate without redrawing it; the
+ * tooltip always shows the whole cell.
  */
-export function Heatmap({ cells, days, bands, valueKey = 'count', emptyMessage }) {
+export function Heatmap({
+  cells,
+  days,
+  bands,
+  valueKey = 'count',
+  valueLabel = 'bookings',
+  valueFormatter = (value) => value,
+  tooltipRows,
+  emptyMessage,
+}) {
   const [hovered, setHovered] = useState(null);
   const [pointer, setPointer] = useState({ x: 0, y: 0 });
 
@@ -51,7 +64,7 @@ export function Heatmap({ cells, days, bands, valueKey = 'count', emptyMessage }
                       ? { background: fill }
                       : { background: 'transparent', boxShadow: `inset 0 0 0 1px ${GRID}` }
                   }
-                  aria-label={`${band}, ${day}: ${value} bookings`}
+                  aria-label={`${band}, ${day}: ${valueFormatter(value)} ${valueLabel}`}
                   onMouseEnter={() => setHovered({ band, day, cell })}
                   onFocus={() => setHovered({ band, day, cell })}
                   onMouseMove={(event) =>
@@ -60,7 +73,7 @@ export function Heatmap({ cells, days, bands, valueKey = 'count', emptyMessage }
                   onBlur={() => setHovered(null)}
                 >
                   {/* The number is the accessible name; the fill is reinforcement. */}
-                  <span className="sr-only">{value}</span>
+                  <span className="sr-only">{valueFormatter(value)}</span>
                 </button>
               );
             })}
@@ -68,7 +81,7 @@ export function Heatmap({ cells, days, bands, valueKey = 'count', emptyMessage }
         ))}
       </div>
 
-      <Legend peak={peak} />
+      <Legend peak={peak} valueFormatter={valueFormatter} />
 
       {hovered && (
         <div
@@ -77,10 +90,14 @@ export function Heatmap({ cells, days, bands, valueKey = 'count', emptyMessage }
         >
           <ChartTooltip
             title={`${hovered.day} · ${hovered.band}`}
-            rows={[
-              { label: 'Bookings', value: hovered.cell?.count ?? 0 },
-              { label: 'Players', value: hovered.cell?.players ?? 0 },
-            ]}
+            rows={
+              tooltipRows
+                ? tooltipRows(hovered.cell ?? {})
+                : [
+                    { label: 'Bookings', value: hovered.cell?.count ?? 0 },
+                    { label: 'Players', value: hovered.cell?.players ?? 0 },
+                  ]
+            }
           />
         </div>
       )}
@@ -97,7 +114,7 @@ function Row({ band, children }) {
   );
 }
 
-function Legend({ peak }) {
+function Legend({ peak, valueFormatter }) {
   return (
     <div className="mt-3 flex items-center justify-end gap-2 text-[0.6875rem] text-ink-muted">
       <span>0</span>
@@ -108,7 +125,7 @@ function Legend({ peak }) {
       {SEQUENTIAL.map((step) => (
         <span key={step} className="h-3 w-4 rounded-sm" style={{ background: step }} />
       ))}
-      <span className="tabular-nums">{peak}</span>
+      <span className="tabular-nums">{valueFormatter(peak)}</span>
     </div>
   );
 }

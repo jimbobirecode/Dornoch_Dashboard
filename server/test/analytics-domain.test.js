@@ -10,8 +10,8 @@ import {
   buildLeadTime,
   buildPartySizes,
   buildSeries,
+  buildRequestUtilisation,
   buildTotals,
-  buildUtilisation,
   bucketDate,
   leadTimeDays,
   parseTeeHour,
@@ -132,17 +132,92 @@ test('accommodation attach rate and basket size', () => {
   assert.equal(stay.averageWithout, 200);
 });
 
-test('the utilisation grid is complete and drops untimed rows', () => {
-  const grid = buildUtilisation(ROWS);
-  const at = (band, day) => grid.cells.find((c) => c.band === band && c.day === day).count;
+test('the request grid is complete and drops untimed rows', () => {
+  const grid = buildRequestUtilisation(ROWS);
+  const at = (band, day) => grid.cells.find((c) => c.band === band && c.day === day);
 
   assert.equal(grid.cells.length, TIME_BANDS.length * 7, 'every cell exists, even at zero');
-  assert.equal(grid.placed, 3, 'the Not Specified row is not placed');
-  assert.equal(at('09:00–11:59', 'Wednesday'), 1);
-  assert.equal(at('Before 09:00', 'Friday'), 1);
-  assert.equal(at('14:00–16:59', 'Sunday'), 1);
+  assert.equal(grid.placed, 3, 'the Not Specified row carries no slot to ask for');
+  assert.equal(grid.unplaced, 1);
+  assert.equal(at('09:00–11:59', 'Wednesday').requests, 1);
+  assert.equal(at('Before 09:00', 'Friday').requests, 1);
+  assert.equal(at('14:00–16:59', 'Sunday').requests, 1);
   assert.deepEqual(grid.days, WEEK_ORDER);
   assert.equal(grid.days[0], 'Monday', 'a tee sheet is read Monday-first');
+});
+
+test('the request grid separates what was asked for from what was booked', () => {
+  const grid = buildRequestUtilisation(ROWS);
+  const at = (band, day) => grid.cells.find((c) => c.band === band && c.day === day);
+
+  const converted = at('09:00–11:59', 'Wednesday');
+  assert.equal(converted.converted, 1);
+  assert.equal(converted.missed, 0);
+  assert.equal(converted.conversion, 100);
+  assert.equal(converted.bookings, 1, 'asked for and played in the same band');
+  assert.equal(converted.revenue, 400);
+
+  const cancelled = at('14:00–16:59', 'Sunday');
+  assert.equal(cancelled.requests, 1);
+  assert.equal(cancelled.converted, 0);
+  assert.equal(cancelled.declined, 1);
+  assert.equal(cancelled.missed, 1, 'demand that walked away');
+  assert.equal(cancelled.conversion, 0);
+  assert.equal(cancelled.bookings, 0, 'a cancellation never occupies the sheet');
+
+  assert.equal(grid.totals.requests, 3);
+  assert.equal(grid.totals.converted, 2);
+  assert.equal(grid.totals.declined, 1);
+  assert.equal(grid.totals.open, 0, 'the open enquiry has no slot to sit in');
+  assert.equal(grid.totals.missed, 1);
+  assert.equal(grid.totals.conversion, 66.7);
+  assert.equal(grid.totals.bookings, 2);
+});
+
+test('the form selection is the ask, the tee sheet is the booking', () => {
+  const moved = [
+    {
+      status: 'Booked',
+      total: 400,
+      players: 4,
+      date: '2026-03-18',
+      teeTime: '02:30 PM',
+      selectedTeeTimes: 'course: Championship, time: 08:10 AM',
+      timestamp: '2026-02-01T09:00:00Z',
+    },
+  ];
+  const grid = buildRequestUtilisation(moved);
+  const at = (band) => grid.cells.find((c) => c.band === band && c.day === 'Wednesday');
+
+  assert.equal(at('Before 09:00').requests, 1, 'the ask sits where they asked');
+  assert.equal(at('Before 09:00').bookings, 0);
+  assert.equal(at('Before 09:00').movedOut, 1);
+  assert.equal(at('14:00–16:59').bookings, 1, 'the booking sits where they play');
+  assert.equal(at('14:00–16:59').requests, 0);
+  assert.equal(at('14:00–16:59').movedIn, 1);
+
+  assert.equal(grid.totals.moved, 1);
+  assert.deepEqual(grid.shifts.map((s) => [s.from, s.to, s.count]), [
+    ['Before 09:00', '14:00–16:59', 1],
+  ]);
+});
+
+test('gaps rank the slots people ask for and walk away from', () => {
+  const rows = [
+    // Two asked for Saturday morning, neither booked; one booked Monday morning.
+    { status: 'Cancelled', players: 4, date: '2026-03-21', teeTime: '09:30' },
+    { status: 'Inquiry', players: 2, date: '2026-03-21', teeTime: '10:30' },
+    { status: 'Booked', players: 2, total: 200, date: '2026-03-16', teeTime: '09:30' },
+  ];
+  const grid = buildRequestUtilisation(rows);
+
+  assert.equal(grid.gaps[0].key, 'Saturday · 09:00–11:59');
+  assert.equal(grid.gaps[0].requests, 2);
+  assert.equal(grid.gaps[0].missed, 2);
+  assert.equal(grid.gaps[0].declined, 1);
+  assert.equal(grid.gaps[0].open, 1, 'still live counts as not booked yet, separately');
+  assert.equal(grid.gaps[0].conversion, 0);
+  assert.equal(grid.gaps.length, 1, 'a fully converted slot is not a gap');
 });
 
 test('buildAnalytics composes every section', () => {
@@ -150,7 +225,7 @@ test('buildAnalytics composes every section', () => {
 
   assert.equal(analytics.granularity, 'day', 'an unknown granularity falls back');
   for (const key of ['totals', 'byStatus', 'series', 'funnel', 'leadTime', 'partySizes',
-    'courses', 'accommodation', 'utilisation', 'popularTeeTimes', 'busiestDays']) {
+    'courses', 'accommodation', 'requestUtilisation', 'popularTeeTimes', 'busiestDays']) {
     assert.ok(analytics[key] !== undefined, `missing ${key}`);
   }
   assert.equal(analytics.byStatus.length, 6);
