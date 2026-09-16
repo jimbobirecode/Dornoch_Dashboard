@@ -47,8 +47,8 @@ export const TIME_BANDS = [
 
 /**
  * '10:04 AM' / '09:20' / '7:30pm' -> hour as a float. Null when the row has no
- * usable time, which keeps "not specified" out of the utilisation grid rather
- * than piling it onto midnight.
+ * usable time, which keeps "not specified" out of the request grid rather than
+ * piling it onto midnight.
  */
 export function parseTeeHour(teeTime) {
   if (!teeTime) return null;
@@ -259,37 +259,172 @@ export function buildAccommodation(bookings) {
 }
 
 /**
- * Weekday × time-band grid. Every cell exists even at zero, so an unsold band
- * reads as a hole in the sheet instead of a missing row.
+ * The slot an enquiry *asked for*. The form's own selection is the truest
+ * record of the ask; `teeTime` is what the sheet ended up carrying, so it is
+ * only the fallback. On a party that was moved to another slot the two differ,
+ * and that difference is the point of this report.
  */
-export function buildUtilisation(bookings) {
+export function requestedTeeHour(booking) {
+  return parseTeeHour(firstTimeIn(booking.selectedTeeTimes)) ?? parseTeeHour(booking.teeTime);
+}
+
+/** The slot the tee sheet actually carries. */
+export function bookedTeeHour(booking) {
+  return parseTeeHour(booking.teeTime);
+}
+
+/** The band a tee hour falls in, or null when there is no usable time. */
+export function bandFor(hour) {
+  if (hour === null) return null;
+  return TIME_BANDS.find((band) => hour >= band.min && hour <= band.max)?.key ?? null;
+}
+
+/** The weekday a tee date falls on, or null when the row has no date. */
+export function weekdayFor(date) {
+  if (!date) return null;
+  const time = Date.parse(`${date}T00:00:00Z`);
+  return Number.isNaN(time) ? null : DAY_NAMES[new Date(time).getUTCDay()];
+}
+
+/**
+ * Booking request utilisation: what people *asked for* against what they
+ * actually booked, cell by cell on a weekday × time-band grid.
+ *
+ * Every enquiry lands on the slot it requested, whatever became of it, so a
+ * cell answers the question the office keeps asking — is this slot quiet
+ * because nobody wants it, or because everybody who wanted it went away? The
+ * two are indistinguishable on a grid of confirmed bookings alone, which is
+ * why demand and supply are counted separately here:
+ *
+ *  - `requests`  enquiries that asked for this slot, at any status
+ *  - `converted` those that went on to be confirmed or booked
+ *  - `declined`  those that were rejected or cancelled
+ *  - `open`      those still live in the pipeline
+ *  - `missed`    requests that are not (yet) a booking: declined + open
+ *  - `bookings`  parties whose tee sheet slot is actually this one
+ *  - `movedIn` / `movedOut` parties booked here having asked elsewhere, and
+ *              the reverse — the gap between `requests` and `bookings`
+ *
+ * Every cell exists even at zero, so an unasked-for band reads as a hole in
+ * the sheet rather than as a missing row.
+ */
+export function buildRequestUtilisation(bookings) {
   const cells = [];
   const index = new Map();
 
   for (const band of TIME_BANDS) {
     for (const day of WEEK_ORDER) {
-      const cell = { band: band.key, day, count: 0, players: 0 };
+      const cell = {
+        band: band.key,
+        day,
+        requests: 0,
+        requestPlayers: 0,
+        converted: 0,
+        declined: 0,
+        open: 0,
+        missed: 0,
+        bookings: 0,
+        bookedPlayers: 0,
+        revenue: 0,
+        movedIn: 0,
+        movedOut: 0,
+        conversion: 0,
+      };
       index.set(`${band.key}|${day}`, cell);
       cells.push(cell);
     }
   }
 
+  const shifts = new Map();
   let placed = 0;
+  let unplaced = 0;
+
   for (const booking of bookings) {
-    const hour = parseTeeHour(booking.teeTime);
-    if (hour === null || !booking.date) continue;
+    const day = weekdayFor(booking.date);
+    const requested = day ? index.get(`${bandFor(requestedTeeHour(booking))}|${day}`) : null;
+    const committed = COMMITTED.has(booking.status);
+    const booked =
+      committed && day ? index.get(`${bandFor(bookedTeeHour(booking))}|${day}`) : null;
 
-    const band = TIME_BANDS.find((entry) => hour >= entry.min && hour <= entry.max);
-    const day = DAY_NAMES[new Date(`${booking.date}T00:00:00Z`).getUTCDay()];
-    const cell = index.get(`${band.key}|${day}`);
-    if (!cell) continue;
+    if (requested) {
+      placed += 1;
+      requested.requests += 1;
+      requested.requestPlayers += num(booking.players);
+      if (committed) requested.converted += 1;
+      else if (TERMINAL_STATUSES.includes(booking.status)) requested.declined += 1;
+      else requested.open += 1;
+    } else {
+      unplaced += 1;
+    }
 
-    cell.count += 1;
-    cell.players += num(booking.players);
-    placed += 1;
+    if (booked) {
+      booked.bookings += 1;
+      booked.bookedPlayers += num(booking.players);
+      booked.revenue += num(booking.total);
+    }
+
+    // A party that asked for one slot and plays another is demand that stayed
+    // and supply that moved. Counted on both ends so neither cell lies.
+    if (booked && requested && booked !== requested) {
+      requested.movedOut += 1;
+      booked.movedIn += 1;
+      const key = `${requested.day} ${requested.band} → ${booked.band}`;
+      const shift = shifts.get(key) ?? {
+        key,
+        day: requested.day,
+        from: requested.band,
+        to: booked.band,
+        count: 0,
+        players: 0,
+      };
+      shift.count += 1;
+      shift.players += num(booking.players);
+      shifts.set(key, shift);
+    }
   }
 
-  return { cells, bands: TIME_BANDS.map((band) => band.key), days: WEEK_ORDER, placed };
+  for (const cell of cells) {
+    cell.missed = cell.declined + cell.open;
+    cell.conversion = round1(cell.requests ? (cell.converted / cell.requests) * 100 : 0);
+    cell.revenue = round2(cell.revenue);
+  }
+
+  const asked = cells.filter((cell) => cell.requests > 0);
+  const totals = {
+    requests: placed,
+    unplaced,
+    converted: sumBy(asked, 'converted'),
+    declined: sumBy(asked, 'declined'),
+    open: sumBy(asked, 'open'),
+    bookings: sumBy(cells, 'bookings'),
+    moved: [...shifts.values()].reduce((total, shift) => total + shift.count, 0),
+  };
+  totals.missed = totals.declined + totals.open;
+  totals.conversion = round1(placed ? (totals.converted / placed) * 100 : 0);
+
+  return {
+    cells,
+    bands: TIME_BANDS.map((band) => band.key),
+    days: WEEK_ORDER,
+    placed,
+    unplaced,
+    totals,
+    // The slots people ask for and walk away from, worst first — the list the
+    // office works down when it decides what to open, price or chase.
+    gaps: [...asked]
+      .filter((cell) => cell.missed > 0)
+      .sort((a, b) => b.missed - a.missed || b.requests - a.requests)
+      .slice(0, 8)
+      .map((cell) => ({ ...cell, key: `${cell.day} · ${cell.band}` })),
+    shifts: [...shifts.values()].sort((a, b) => b.count - a.count).slice(0, 8),
+  };
+}
+
+/** First clock time in a free-text field, e.g. 'time: 10:35 AM' -> '10:35 AM'. */
+function firstTimeIn(value) {
+  if (!value) return null;
+  const match = String(value).match(/(\d{1,2}:\d{2}(?:\s*[AP]M)?)/i);
+  return match ? match[1] : null;
 }
 
 export function buildStatusBreakdown(bookings) {
@@ -338,7 +473,7 @@ export function buildAnalytics(bookings, { granularity = 'day', previous = null 
     partySizes: buildPartySizes(bookings),
     courses: buildCourseMix(bookings),
     accommodation: buildAccommodation(bookings),
-    utilisation: buildUtilisation(bookings),
+    requestUtilisation: buildRequestUtilisation(bookings),
     popularTeeTimes: buildPopularTeeTimes(bookings),
     busiestDays: buildBusiestDays(bookings),
   };
@@ -380,6 +515,7 @@ function median(values) {
   return sorted.length % 2 ? sorted[middle] : Math.round((sorted[middle - 1] + sorted[middle]) / 2);
 }
 
+const sumBy = (items, key) => items.reduce((total, item) => total + item[key], 0);
 const num = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0);
 const sum = (items, key) => items.reduce((total, item) => total + num(item[key]), 0);
 const mean = (values) => values.reduce((total, value) => total + value, 0) / values.length;
