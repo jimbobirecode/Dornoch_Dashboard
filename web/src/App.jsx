@@ -3,6 +3,8 @@ import { Navigate, NavLink, Route, Routes } from 'react-router-dom';
 import { useSession } from './lib/useSession.js';
 import Login from './pages/Login.jsx';
 import ChangePassword from './pages/ChangePassword.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
 import Bookings from './pages/Bookings.jsx';
 import Emails from './pages/Emails.jsx';
 import Operators from './pages/Operators.jsx';
@@ -22,8 +24,17 @@ export default function App() {
     return <div className="empty">Loading dashboard…</div>;
   }
 
+  // Signed out, the reset screens are routes of their own: an emailed link
+  // lands on /reset-password directly and must not be swallowed by the login
+  // form. Everything else falls back to signing in.
   if (!user) {
-    return <Login onLogin={login} />;
+    return (
+      <Routes>
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="*" element={<Login onLogin={login} />} />
+      </Routes>
+    );
   }
 
   if (mustChangePassword) {
@@ -41,9 +52,6 @@ export default function App() {
           <NavLink to="/bookings" className={navClass}>
             Bookings
           </NavLink>
-          <NavLink to="/analytics" className={navClass}>
-            Analytics
-          </NavLink>
           <NavLink to="/operators" className={navClass}>
             Tour Operators
           </NavLink>
@@ -52,6 +60,9 @@ export default function App() {
           </NavLink>
           <NavLink to="/reminders" className={navClass}>
             Operator Reminders
+          </NavLink>
+          <NavLink to="/analytics" className={navClass}>
+            Analytics
           </NavLink>
         </nav>
 
@@ -77,6 +88,8 @@ export default function App() {
             <Route path="/operators" element={<Operators />} />
             <Route path="/emails" element={<Emails />} />
             <Route path="/reminders" element={<Reminders />} />
+            {/* A signed-in reader following an old reset link goes to the
+                bookings table rather than to a form they no longer need. */}
             <Route path="*" element={<Navigate to="/bookings" replace />} />
           </Routes>
         </Suspense>

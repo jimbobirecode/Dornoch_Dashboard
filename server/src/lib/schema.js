@@ -88,6 +88,8 @@ export const OPERATOR_COLUMNS = [
 const USER_COLUMNS = [
   'id',
   'username',
+  // migration_add_password_reset.sql
+  'email',
   'password_hash',
   'temp_password',
   'customer_id',
@@ -194,6 +196,34 @@ export async function hasOperatorsTable() {
 export async function hasOperatorBookingColumns() {
   const columns = await getBookingColumns();
   return columns.has('tour_operator_id') && columns.has('payment_status');
+}
+
+/** Every column of `password_resets`; the table exists only after the migration. */
+const PASSWORD_RESET_COLUMNS = [
+  'id',
+  'user_id',
+  'token_hash',
+  'email',
+  'expires_at',
+  'used_at',
+  'requested_ip',
+  'created_at',
+];
+
+export function getPasswordResetColumns() {
+  return cached('password_resets', PASSWORD_RESET_COLUMNS);
+}
+
+/**
+ * Whether this install has run `migration_add_password_reset.sql`.
+ *
+ * Both halves matter: the table that holds outstanding links, and the column
+ * that says where to send them. Without either, the login screen hides the
+ * reset link rather than offering one that cannot work.
+ */
+export async function hasPasswordReset() {
+  const [users, resets] = await Promise.all([getUserColumns(), getPasswordResetColumns()]);
+  return users.has('email') && resets.has('token_hash') && resets.has('expires_at');
 }
 
 /** Only for tests and the seed path, which can create tables mid-process. */
