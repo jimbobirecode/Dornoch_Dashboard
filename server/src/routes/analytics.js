@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { query } from '../db.js';
 import { requireAuth } from '../auth.js';
 import { serialiseBooking } from '../lib/bookings-domain.js';
-import { getBookingColumns } from '../lib/schema.js';
+import { getBookingColumns, getOperatorColumns, hasOperatorsTable } from '../lib/schema.js';
 import { GRANULARITIES, buildAnalytics } from '../lib/analytics-domain.js';
 
 const router = Router();
@@ -17,6 +17,9 @@ router.get('/', async (req, res, next) => {
     );
 
     const all = rows.map(serialiseBooking);
+    // Trade mix reads better as account names than as ids. An install without
+    // the operators table simply has none, and every booking reads as direct.
+    const operatorNames = await loadOperatorNames(req.user.customerId);
     const { from, to, granularity } = req.query;
 
     const current = all.filter((booking) => within(booking, from, to));
@@ -27,7 +30,11 @@ router.get('/', async (req, res, next) => {
     const previous = window ? all.filter((b) => within(b, window.from, window.to)) : null;
 
     res.json({
-      ...buildAnalytics(current, { granularity: resolveGranularity(granularity, from, to), previous }),
+      ...buildAnalytics(current, {
+        granularity: resolveGranularity(granularity, from, to),
+        previous,
+        operatorNames,
+      }),
       range: { from: from ?? null, to: to ?? null },
       comparison: window,
     });
@@ -35,6 +42,23 @@ router.get('/', async (req, res, next) => {
     next(err);
   }
 });
+
+/** id → account name, or an empty map where the table is not there. */
+async function loadOperatorNames(club) {
+  try {
+    if (!(await hasOperatorsTable())) return new Map();
+    const columns = await getOperatorColumns();
+    const clause = columns.has('club') ? ' WHERE club = $1' : '';
+    const { rows } = await query(
+      `SELECT id, name FROM public.tour_operators${clause}`,
+      clause ? [club] : [],
+    );
+    return new Map(rows.map((row) => [row.id, row.name]));
+  } catch {
+    // Names are a nicety; the report is worth more than the labels.
+    return new Map();
+  }
+}
 
 function within(booking, from, to) {
   if (!booking.date) return false;

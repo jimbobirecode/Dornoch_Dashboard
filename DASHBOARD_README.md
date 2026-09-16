@@ -27,6 +27,44 @@ npm run build && npm start   # production, single origin on :3001
 | `npm run seed` | Sample Royal Dornoch bookings (`--reset` to rebuild) |
 | `npm test` | Unit tests for the booking and analytics arithmetic (no database needed) |
 
+## Signing in
+
+Accounts live in `public.dashboard_users`. A new account is created with a
+temporary password and `must_change_password`, and is forced to set a permanent
+bcrypt-hashed one on first sign-in — the same flow the Streamlit dashboard had.
+
+**Password reset** is self-service, and emails through the same SendGrid sender
+the guest campaigns use:
+
+```bash
+psql "$DATABASE_URL" -f migration_add_password_reset.sql
+```
+
+That adds `dashboard_users.email` and a `password_resets` table, and fills the
+address in for accounts whose username is already one. Then set
+`SENDGRID_TEMPLATE_PASSWORD_RESET` and `APP_URL` (see `.env.example`). Until
+both the migration and the configuration are in place the sign-in screen hides
+the link rather than offering one that cannot send, and `/api/auth/reset-config`
+says which half is missing.
+
+The reset itself is deliberately dull to talk to:
+
+- `POST /api/auth/forgot-password` answers with the same sentence whether the
+  account exists, has no address on file, or was just emailed a link — so it
+  cannot be used to find out who has an account here.
+- The token is 32 random bytes and only its SHA-256 is stored, so a leaked
+  database cannot be replayed into an account takeover.
+- A link expires after `PASSWORD_RESET_TTL_MINUTES` (default 60), a new request
+  supersedes any outstanding one, and redeeming a link burns every link that
+  user has.
+- Redeeming does **not** sign anybody in. The new password is proved at the
+  sign-in screen, so the emailed link is never a way in by itself.
+- Both unauthenticated endpoints are throttled, per account and per IP. That is
+  a brake on a script, not a substitute for a rate limiter in front of the app.
+
+The rules live in `server/src/lib/password-reset-domain.js` and are unit-tested
+without a database or an API key.
+
 ## What is ported from the Streamlit dashboard
 
 Bookings list and filtering, the `Inquiry → Requested → Confirmed → Booked`
@@ -239,10 +277,23 @@ a database (`npm test`).
 | Lead time | How far ahead the sheet fills, bucketed, with the median |
 | Party size | Where the volume and the money sit, by players per booking |
 | Course mix | Championship vs Struie vs unrecorded |
-| Accommodation | Attach rate, and basket size with a stay against golf-only |
 | Booking request utilisation | Weekday against time-of-day band, counting what enquiries **asked for** beside what was actually **booked**: requested, converted, lost, still open, conversion rate, and the parties whose tee sheet slot is not the one they asked for |
 | Asked for, not booked | The slots with the most demand that never became a booking |
 | Moved to another slot | Where the sheet put parties that asked for a different band |
+| Collection | Value, paid, outstanding and overdue on committed bookings, by payment status |
+| Overdue by age | How old the outstanding money is, on the same ageing bands as the operator statements |
+| Direct against trade | Volume, party size, conversion and average value either side of the operator split, and the accounts carrying the book |
+| Accommodation | Attach rate and basket size, length of stay, room types, room nights, and committed revenue split into golf, lodging and resort fees |
+| Caddie demand | How many parties ask, how many say no, and an estimate of the caddies needed |
+| What people write in | The themes the free-text fields mention, by keyword |
+| Journey email coverage | Which committed bookings the pre-arrival and post-play emails actually reached |
+| Repeat and new guests | Distinct addresses, who booked more than once, and business against personal domains |
+| Time to answer | How long an enquiry waits between landing and being confirmed |
+
+Every section built on a later migration carries its own "is there anything
+here" flag, so an install that does not use tour operator accounts, does not
+record lodging detail or has not run the journey-email migration is told which
+one rather than shown a grid of zeroes.
 
 Three things the numbers deliberately do **not** do. Revenue counts only
 `Confirmed` and `Booked`, so an open enquiry never inflates it. Course mix
@@ -257,6 +308,13 @@ appears in both, which is what makes "demand we did not satisfy here" legible
 at all — a grid of confirmed bookings alone cannot tell a slot nobody wants
 from a slot everybody walks away from. Rows with no usable date or time are
 left off the grid and reported as a count beside it.
+
+Two further readings are honest about their own limits. "Returning guest" means
+more than one booking *inside the selected period* — this endpoint never sees
+the rest of the book, so it cannot claim a lifetime number. And the request
+themes are keyword matches over free text, so a booking counts toward every
+theme it mentions and one nobody has a word for lands in none: a reading aid
+for the notes, not a classification of them.
 
 The comparison window is the same length immediately before the selected range,
 so "next 90 days" is judged against the 90 days before it. Where the previous
