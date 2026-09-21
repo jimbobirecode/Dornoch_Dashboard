@@ -6,6 +6,7 @@ import ChangePassword from './pages/ChangePassword.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import Bookings from './pages/Bookings.jsx';
+import Book from './pages/Book.jsx';
 import Emails from './pages/Emails.jsx';
 import Operators from './pages/Operators.jsx';
 import Reminders from './pages/Reminders.jsx';
@@ -19,6 +20,19 @@ import Wordmark from './components/Wordmark.jsx';
 
 export default function App() {
   const { user, mustChangePassword, loading, login, logout, completePasswordChange } = useSession();
+
+  // The visitor booking page is public and sits outside the dashboard entirely:
+  // a guest books a tee time without an account, and must not be bounced to a
+  // login screen — nor made to wait on a session check that cannot help them.
+  // Matched exactly, because the dashboard's own route is `/bookings` and a
+  // prefix test would swallow it.
+  if (isBookingPath(window.location.pathname)) {
+    return (
+      <Routes>
+        <Route path="/book" element={<Book />} />
+      </Routes>
+    );
+  }
 
   if (loading) {
     return <div className="empty">Loading dashboard…</div>;
@@ -99,3 +113,8 @@ export default function App() {
 }
 
 const navClass = ({ isActive }) => `nav-link${isActive ? ' active' : ''}`;
+
+/** The public booking page, and nothing else that merely starts with "book". */
+function isBookingPath(pathname) {
+  return pathname === '/book' || pathname.startsWith('/book/');
+}

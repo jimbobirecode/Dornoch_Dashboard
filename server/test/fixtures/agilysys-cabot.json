@@ -1,0 +1,539 @@
+{
+  "multiCourse": {
+    "wbeCorrelationId": "387d0182-d9c1-4101-b282-a45cd06a8312",
+    "success": true,
+    "result": [
+      {
+        "courseId": 39,
+        "courseName": "CASTLE STUART",
+        "resvReqd": false,
+        "roomType": "",
+        "minimumNights": 0,
+        "listOrder": 40,
+        "slots": [
+          {
+            "scheduledDateTime": "2026-09-25T08:00:00",
+            "availableCount": 2,
+            "guaranteeTypes": [
+              "None"
+            ],
+            "rateTypes": [
+              {
+                "isPrivate": false,
+                "id": 194038,
+                "name": "Visitor Online Booking",
+                "holeType": 18,
+                "rateTypeId": 457,
+                "playerTypeId": 70,
+                "rates": {
+                  "greenFee": 385.0,
+                  "cartFee": 0.0,
+                  "otherFee": 0.0
+                },
+                "minimumPlayers": 0,
+                "guaranteeType": "None",
+                "playerTypeGuarantee": "None"
+              },
+              {
+                "isPrivate": false,
+                "id": 242994,
+                "name": "Scottish Golf Member/Resident Online",
+                "holeType": 18,
+                "rateTypeId": 490,
+                "playerTypeId": 69,
+                "rates": {
+                  "greenFee": 170.0,
+                  "cartFee": 0.0,
+                  "otherFee": 0.0
+                },
+                "minimumPlayers": 0,
+                "guaranteeType": "None",
+                "playerTypeGuarantee": "None"
+              }
+            ],
+            "holeNumber": "1",
+            "teeTimeId": 78327,
+            "allocationBlockId": 55,
+            "allocationBlockCode": "ALL",
+            "allocationBlockName": "ALL"
+          },
+          {
+            "scheduledDateTime": "2026-09-25T08:12:00",
+            "availableCount": 4,
+            "guaranteeTypes": [
+              "None"
+            ],
+            "rateTypes": [
+              {
+                "isPrivate": false,
+                "id": 194038,
+                "name": "Visitor Online Booking",
+                "holeType": 18,
+                "rateTypeId": 457,
+                "playerTypeId": 70,
+                "rates": {
+                  "greenFee": 385.0,
+                  "cartFee": 0.0,
+                  "otherFee": 0.0
+                },
+                "minimumPlayers": 0,
+                "guaranteeType": "None",
+                "playerTypeGuarantee": "None"
+              },
+              {
+                "isPrivate": false,
+                "id": 242994,
+                "name": "Scottish Golf Member/Resident Online",
+                "holeType": 18,
+                "rateTypeId": 490,
+                "playerTypeId": 69,
+                "rates": {
+                  "greenFee": 170.0,
+                  "cartFee": 0.0,
+                  "otherFee": 0.0
+                },
+                "minimumPlayers": 0,
+                "guaranteeType": "None",
+                "playerTypeGuarantee": "None"
+              }
+            ],
+            "holeNumber": "1",
+            "teeTimeId": 0,
+            "allocationBlockId": 55,
+            "allocationBlockCode": "ALL",
+            "allocationBlockName": "ALL"
+          },
+          {
+            "scheduledDateTime": "2026-09-25T08:24:00",
+            "availableCount": 2,
+            "guaranteeTypes": [
+              "None"
+            ],
+            "rateTypes": [
+              {
+                "isPrivate": false,
+                "id": 194038,
+                "name": "Visitor Online Booking",
+                "holeType": 18,
+                "rateTypeId": 457,
+                "playerTypeId": 70,
+                "rates": {
+                  "greenFee": 385.0,
+                  "cartFee": 0.0,
+                  "otherFee": 0.0
+                },
+                "minimumPlayers": 0,
+                "guaranteeType": "None",
+                "playerTypeGuarantee": "None"
+              },
+              {
+                "isPrivate": false,
+                "id": 242994,
+                "name": "Scottish Golf Member/Resident Online",
+                "holeType": 18,
+                "rateTypeId": 490,
+                "playerTypeId": 69,
+                "rates": {
+                  "greenFee": 170.0,
+                  "cartFee": 0.0,
+                  "otherFee": 0.0
+                },
+                "minimumPlayers": 0,
+                "guaranteeType": "None",
+                "playerTypeGuarantee": "None"
+              }
+            ],
+            "holeNumber": "1",
+            "teeTimeId": 86493,
+            "allocationBlockId": 55,
+            "allocationBlockCode": "ALL",
+            "allocationBlockName": "ALL"
+          }
+        ],
+        "images": [
+          {
+            "iuid": "7809617c-64f0-4703-ac01-248f8f61602b",
+            "name": "7809617c-64f0-4703-ac01-248f8f61602b.jpg",
+            "title": "CastleStuart",
+            "description": "<p>Castle Stuart is a modern yet traditional-feeling Scottish links course set dramatically along the Moray Firth, where wide, sweeping fairways run atop coastal bluffs and greens appear to hang over the sea. Designed by Gil Hanse and Mark Parsinen, it blends classic early-20th-century links aesthetics with contemporary playability, using the natural and rugged landscape, rumpled terrain, and striking \u201cinfinity-edge\u201d greens to create both beauty and strategic challenge. With varied holes, constant ocean views and Highlands scenery, and a thrilling final stretch, it stands as one of Scotland\u2019s most scenic and thoughtfully crafted courses.</p><p><br></p><p><a href=\"https://bpheadlesst560.wpenginepowered.com/wp-content/uploads/2025/12/Scorecard_CH_CastleStuart_2025_Digital-1.pdf\" rel=\"noopener noreferrer\" target=\"_blank\"><strong>Click here</strong></a> to download scorecard.</p>",
+            "order": 1,
+            "size": 100948,
+            "imageDetailsId": "9424918C-8050-4A38-8259-16A1B1F3DDA3",
+            "isPanoramicImage": false,
+            "isVideo": false
+          }
+        ],
+        "path": "10282/CabotHighlands/images/courses/39/",
+        "startTime": "2026-09-25T07:36:00",
+        "endTime": "2026-09-25T16:30:00"
+      },
+      {
+        "courseId": 40,
+        "courseName": "OLD PETTY",
+        "resvReqd": false,
+        "roomType": "",
+        "minimumNights": 0,
+        "listOrder": 0,
+        "slots": [
+          {
+            "scheduledDateTime": "2026-09-25T08:05:00",
+            "availableCount": 4,
+            "guaranteeTypes": [
+              "None"
+            ],
+            "rateTypes": [
+              {
+                "isPrivate": false,
+                "id": 194223,
+                "name": "Visitor Online Booking",
+                "holeType": 18,
+                "rateTypeId": 457,
+                "playerTypeId": 70,
+                "rates": {
+                  "greenFee": 385.0,
+                  "cartFee": 0.0,
+                  "otherFee": 0.0
+                },
+                "minimumPlayers": 0,
+                "guaranteeType": "None",
+                "playerTypeGuarantee": "None"
+              },
+              {
+                "isPrivate": false,
+                "id": 243093,
+                "name": "Scottish Golf Member/Resident Online",
+                "holeType": 18,
+                "rateTypeId": 490,
+                "playerTypeId": 69,
+                "rates": {
+                  "greenFee": 170.0,
+                  "cartFee": 0.0,
+                  "otherFee": 0.0
+                },
+                "minimumPlayers": 0,
+                "guaranteeType": "None",
+                "playerTypeGuarantee": "None"
+              }
+            ],
+            "holeNumber": "1",
+            "teeTimeId": 0,
+            "allocationBlockId": 55,
+            "allocationBlockCode": "ALL",
+            "allocationBlockName": "ALL"
+          },
+          {
+            "scheduledDateTime": "2026-09-25T08:53:00",
+            "availableCount": 4,
+            "guaranteeTypes": [
+              "None"
+            ],
+            "rateTypes": [
+              {
+                "isPrivate": false,
+                "id": 194223,
+                "name": "Visitor Online Booking",
+                "holeType": 18,
+                "rateTypeId": 457,
+                "playerTypeId": 70,
+                "rates": {
+                  "greenFee": 385.0,
+                  "cartFee": 0.0,
+                  "otherFee": 0.0
+                },
+                "minimumPlayers": 0,
+                "guaranteeType": "None",
+                "playerTypeGuarantee": "None"
+              },
+              {
+                "isPrivate": false,
+                "id": 243093,
+                "name": "Scottish Golf Member/Resident Online",
+                "holeType": 18,
+                "rateTypeId": 490,
+                "playerTypeId": 69,
+                "rates": {
+                  "greenFee": 170.0,
+                  "cartFee": 0.0,
+                  "otherFee": 0.0
+                },
+                "minimumPlayers": 0,
+                "guaranteeType": "None",
+                "playerTypeGuarantee": "None"
+              }
+            ],
+            "holeNumber": "1",
+            "teeTimeId": 0,
+            "allocationBlockId": 55,
+            "allocationBlockCode": "ALL",
+            "allocationBlockName": "ALL"
+          },
+          {
+            "scheduledDateTime": "2026-09-25T09:05:00",
+            "availableCount": 4,
+            "guaranteeTypes": [
+              "None"
+            ],
+            "rateTypes": [
+              {
+                "isPrivate": false,
+                "id": 194223,
+                "name": "Visitor Online Booking",
+                "holeType": 18,
+                "rateTypeId": 457,
+                "playerTypeId": 70,
+                "rates": {
+                  "greenFee": 385.0,
+                  "cartFee": 0.0,
+                  "otherFee": 0.0
+                },
+                "minimumPlayers": 0,
+                "guaranteeType": "None",
+                "playerTypeGuarantee": "None"
+              },
+              {
+                "isPrivate": false,
+                "id": 243093,
+                "name": "Scottish Golf Member/Resident Online",
+                "holeType": 18,
+                "rateTypeId": 490,
+                "playerTypeId": 69,
+                "rates": {
+                  "greenFee": 170.0,
+                  "cartFee": 0.0,
+                  "otherFee": 0.0
+                },
+                "minimumPlayers": 0,
+                "guaranteeType": "None",
+                "playerTypeGuarantee": "None"
+              }
+            ],
+            "holeNumber": "1",
+            "teeTimeId": 0,
+            "allocationBlockId": 55,
+            "allocationBlockCode": "ALL",
+            "allocationBlockName": "ALL"
+          }
+        ],
+        "images": [
+          {
+            "iuid": "129c256c-bcc0-43e4-86bf-1de24d2fe492",
+            "name": "129c256c-bcc0-43e4-86bf-1de24d2fe492.jpg",
+            "title": "Generation Golf _ Old Petty _ Cabot Highlands1",
+            "description": "<p>Old Petty, an 18-hole Tom Doak design, is an authentic celebration of Inverness\u2019s rich history. Doak\u2019s routing threads along a tidal estuary, bringing golfers even closer to the 400-year-old castle, and plays alongside Old Petty Church, which was built in 1839. From the outset, golfers will notice its unique design: the 1st and 18th holes cross over each other. Rare in modern golf, this bold feature balances playability with strategic intrigue. Old Petty\u2019s official grand opening is set for Spring 2026, with bookings now available. A true links experience, Old Petty is an exciting new chapter alongside its world-renowned neighbour, Castle Stuart.</p><p><br></p><p><a href=\"https://bpheadlesst560.wpenginepowered.com/wp-content/uploads/2025/12/Scorecard_CH_OldPetty_2025_Digital.pdf\" rel=\"noopener noreferrer\" target=\"_blank\"><strong>Click here</strong></a> to download scorecard.</p>",
+            "order": 1,
+            "size": 98783,
+            "imageDetailsId": "1B6C86E8-FF1D-4E48-B9F1-3DBF5310C729",
+            "isPanoramicImage": false,
+            "isVideo": false
+          }
+        ],
+        "path": "10282/CabotHighlands/images/courses/40/",
+        "startTime": "2026-09-25T07:29:00",
+        "endTime": "2026-09-25T16:41:00"
+      }
+    ],
+    "errorCode": 0,
+    "successStatus": true
+  },
+  "propertyInfo": {
+    "wbeCorrelationId": "3cc8cbc5-b8a2-4300-bb1d-278b7169e1bc",
+    "success": true,
+    "golfHeader": {
+      "timeZone": "Europe/London",
+      "propertyDTTM": "2026-09-21T00:00:00"
+    },
+    "rBookConfig": {
+      "defaultOutlet": 143,
+      "defaultPlayerType": 69,
+      "firstNameRequired": true,
+      "lastNameRequired": true,
+      "genderRequired": false,
+      "noOfHolesRequired": false,
+      "phoneRequired": true,
+      "emailRequired": true,
+      "titleRequired": false,
+      "birthdayRequired": false,
+      "addressRequired": false,
+      "cityRequired": false,
+      "stateRequired": false,
+      "pincodeRequired": true,
+      "countryRequired": false,
+      "creditCardRequired": true,
+      "bookingDaysOut": 591,
+      "allowTeeTimesEdit": false,
+      "allowTeeTimesCancel": false,
+      "requireTeeTimesDeposit": true,
+      "cancelDaysOut": 0,
+      "cancellationPolicy": "Cancellations received more than 8 weeks prior to the date of play will be refunded in full. Between 4-8 weeks there will be a 50% cancellation charge. Those received less than 4 weeks before the date of play are non-refundable and non-transferable.",
+      "depositPolicy": "Deposit amounts are in full and include VAT. Full payment is required by return to secure the booking and can be made by either debit or credit card. Please note that caddie fees are not included in the deposit."
+    },
+    "golfPropertyInfo": {
+      "propertyId": 1049,
+      "propertyName": "Cabot Highlands",
+      "address1": "Dalcross, Inverness IV2 7JL, United Kingdom",
+      "address2": "",
+      "address3": "",
+      "state": "Highland",
+      "city": "Inverness",
+      "country": "United Kingdom",
+      "zip": "IV2 7JL",
+      "propertyContacts": [
+        {
+          "id": 10475,
+          "contactTypeId": 1,
+          "number": "44|1463796111",
+          "propertyId": 1049
+        }
+      ]
+    },
+    "golfPropertySettings": {
+      "propertyId": 1049,
+      "timeZone": "Europe/London",
+      "propertyDate": "2026-09-21T00:00:00",
+      "propertyName": "Cabot Highlands",
+      "activateRetailInterface": false
+    }
+  },
+  "getPrice": {
+    "wbeCorrelationId": "ff785b8f-f803-4d1a-a8fa-dc9431ecd934",
+    "success": true,
+    "cartDetails": [
+      {
+        "courseId": "39",
+        "dateTime": "2026-09-25T08:12:00",
+        "isAvailable": false,
+        "availableSlots": 0,
+        "rate": [
+          {
+            "rateTypeId": 194038,
+            "greenFee": 385.0,
+            "cartFee": 0.0,
+            "otherFee": 0.0,
+            "greenFeeTax": 0.0,
+            "cartFeeTax": 0.0,
+            "otherFeeTax": 0.0,
+            "totalPrice": 385.0,
+            "totalTax": 0.0,
+            "depositAmount": 385.0,
+            "greenFeeDiscount": 0.0,
+            "cartFeeDiscount": 0.0,
+            "totalDiscount": 0.0
+          }
+        ]
+      }
+    ]
+  },
+  "caddyTypes": {
+    "wbeCorrelationId": "50ee73be-9d3e-4bc6-9134-abc86ed1ea1f",
+    "success": true,
+    "caddyTypeConfig": {
+      "id": "11884161-6e55-433e-8e75-dd6347c5f068",
+      "tenantId": "10282",
+      "propertyId": "CabotHighlands",
+      "locale": "EN",
+      "isPrimary": true,
+      "createdTime": "2026-02-03 11:48:09 750",
+      "caddyTypeDetails": [
+        {
+          "id": 51,
+          "type": "Forecaddie",
+          "bagValue": 1,
+          "isActive": true,
+          "locale": "EN",
+          "isPrimary": true,
+          "isEnabled": true
+        },
+        {
+          "id": 35,
+          "type": "Forecaddie 4",
+          "bagValue": 4,
+          "isActive": false,
+          "locale": "EN",
+          "isPrimary": true,
+          "isEnabled": true
+        },
+        {
+          "id": 36,
+          "type": "Single Bag",
+          "bagValue": 1,
+          "isActive": true,
+          "locale": "EN",
+          "isPrimary": true,
+          "isEnabled": true
+        },
+        {
+          "id": 32,
+          "type": "Buggy Caddie",
+          "bagValue": 1,
+          "isActive": false,
+          "locale": "EN",
+          "isPrimary": true,
+          "isEnabled": true
+        },
+        {
+          "id": 34,
+          "type": "Forecaddie 3",
+          "bagValue": 2,
+          "isActive": false,
+          "locale": "EN",
+          "isPrimary": true,
+          "isEnabled": true
+        },
+        {
+          "id": 33,
+          "type": "Forecaddie 2",
+          "bagValue": 2,
+          "isActive": false,
+          "locale": "EN",
+          "isPrimary": true,
+          "isEnabled": true
+        }
+      ]
+    }
+  },
+  "cartTypesEmpty": {
+    "wbeCorrelationId": "a98b190c-cba3-4dc5-809b-6f657a733372",
+    "success": true,
+    "errorMessage": "Data not found for the given Tenant Id, Property Id in CartTypeConfig Table"
+  },
+  "cancellationPolicyError": {
+    "Success": false,
+    "ErrorMessage": "Backend Error",
+    "ExceptionType": "cloud",
+    "ErrorCode": "CLOUD_CON_ERROR",
+    "StatusCode": 1004,
+    "Context": {
+      "TENANT_ID": "10282",
+      "PROPERTY_ID": "CabotHighlands"
+    },
+    "EventId": "27b2298a-b728-4e48-afac-2e64bd4c1271",
+    "Message": "Error while connecting to Cloud PMS",
+    "wbeCorrelationId": "75577c48-1c62-48c3-a5a9-1b76e0db8083"
+  },
+  "payToken": {
+    "Success": true,
+    "tenantID": "10282",
+    "clientID": "67e6c1c2e43d592f328f7dca",
+    "wbeCorrelationId": "93e75f5f-aae8-40c5-b34e-81afe62bb705",
+    "iframeUrl": "https://pay.rguest.eu/pay-iframe-service/v1/iFrame/tenants/10282/67e6c1c2e43d592f328f7dca?apiToken=REDACTED&payToken=REDACTED",
+    "gatewayId": "adyen",
+    "payVersion": 3,
+    "paymentIframeUrl": "https://pay.rguest.eu",
+    "paymentStylesUrl": "https://agyswbeprodwesteu.blob.core.windows.net/paymentstyles/10282-1770919844966.css"
+  },
+  "timeInterval": {
+    "Success": true,
+    "wbeCorrelationId": "c47f53e6-8753-43ae-9b61-ff1aae1c6f76",
+    "golfTimeIntervalDetail": {
+      "id": "697a7216-8e54-4f5c-a7c7-8cf62a78495d",
+      "tenantId": "10282",
+      "propertyId": "CabotHighlands",
+      "intervalTime": 2,
+      "lastModifiedUser": "kmacisaac",
+      "lastUpdatedTime": "2026-04-03 14:28:20 311",
+      "timeRanges": {
+        "All Day": "8:00 AM - 4:00 PM"
+      }
+    }
+  }
+}

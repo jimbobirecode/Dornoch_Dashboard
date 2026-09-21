@@ -432,3 +432,265 @@ table.data tbody tr.selected { background: var(--surface-3); }
    tailwind.config.js so none of the styling above is reset. */
 @tailwind components;
 @tailwind utilities;
+
+/* ---------------------------------------------------------------
+   Visitor booking page.
+
+   A public surface, so it is a centred page rather than the sidebar
+   shell the dashboard uses. The tee sheet is the one piece that has to
+   stay dense — a day is sixty-odd times across two courses, and a guest
+   scanning for "somewhere around ten" should see the morning at once.
+   --------------------------------------------------------------- */
+.book-page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+}
+
+.book-head { margin-bottom: 1.5rem; }
+.book-head h1 { font-family: var(--font-display); font-size: 2.25rem; margin: 0; }
+.book-head p { margin: 0.25rem 0 0; }
+
+.book-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .book-layout { grid-template-columns: minmax(0, 1fr); }
+  /* On a narrow screen the basket belongs under what fills it. */
+  .basket { order: 2; }
+}
+
+/* --- search controls --- */
+.search-bar {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.search-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.875rem; }
+.search-row .field { min-width: 9rem; }
+
+/* One row, always: wrapping put the "next week" arrow on a line of its own.
+   On a narrow screen the strip scrolls sideways instead. */
+.date-strip {
+  display: flex;
+  gap: 0.375rem;
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding-bottom: 0.25rem;
+}
+.date-strip > * { flex: 0 0 auto; }
+
+.date-chip {
+  padding: 0.4rem 0.7rem;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  background: var(--surface-0);
+}
+.date-chip.is-active {
+  background: var(--brand-gold);
+  border-color: var(--brand-gold);
+  color: var(--surface-0);
+  font-weight: 700;
+}
+
+/* --- tee sheet --- */
+.tee-sheet { display: grid; gap: 1.25rem; }
+
+.tee-sheet-course {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+
+.tee-sheet-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+.tee-sheet-head h3 { font-family: var(--font-display); font-size: 1.375rem; margin: 0; }
+.tee-sheet-none { margin: 0; }
+
+.slot-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.slot {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.125rem;
+  padding: 0.55rem 0.7rem;
+  background: var(--surface-0);
+  text-align: left;
+}
+.slot-time { font-weight: 700; font-size: 0.9375rem; }
+.slot-price { font-size: 0.75rem; color: var(--text-secondary); }
+.slot-scarce { font-size: 0.6875rem; color: var(--brand-gold-bright); font-weight: 600; }
+
+/* --- rate picker --- */
+.rate-picker {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  max-width: 30rem;
+}
+.rate-picker header { margin-bottom: 1rem; }
+.rate-picker h3 { font-family: var(--font-display); font-size: 1.5rem; margin: 0; }
+.rate-picker header p { margin: 0.125rem 0 0; }
+
+.rate-options { border: 0; padding: 0; margin: 0 0 1rem; }
+.rate-options legend { font-size: 0.8125rem; color: var(--text-secondary); padding: 0 0 0.375rem; }
+
+.rate-option {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-0);
+  margin-bottom: 0.375rem;
+  cursor: pointer;
+}
+.rate-option:has(input:checked) { border-color: var(--brand-gold); }
+.rate-option .rate-name { flex: 1; }
+.rate-option .rate-price { font-weight: 700; }
+
+.rate-total {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+.rate-total strong { font-size: 1.25rem; }
+
+/* --- basket --- */
+.basket {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.125rem;
+  position: sticky;
+  top: 1rem;
+}
+.basket h2 { font-family: var(--font-display); font-size: 1.375rem; margin: 0 0 0.75rem; }
+
+.basket-items { list-style: none; margin: 0 0 0.75rem; padding: 0; }
+
+.basket-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.basket-item.is-gone { opacity: 0.6; }
+
+.basket-item-main { display: flex; flex-direction: column; gap: 0.125rem; font-size: 0.8125rem; }
+.basket-item-side { display: flex; flex-direction: column; align-items: flex-end; gap: 0.375rem; }
+
+.basket-flag {
+  font-size: 0.75rem;
+  color: var(--brand-gold-bright);
+  font-weight: 600;
+  margin-top: 0.25rem;
+}
+.basket-flag.is-error { color: var(--status-rejected); }
+
+.basket-totals { margin: 0 0 1rem; }
+.basket-totals > div { display: flex; justify-content: space-between; padding: 0.25rem 0; }
+.basket-totals dt { color: var(--text-secondary); font-size: 0.875rem; }
+.basket-totals dd { margin: 0; font-weight: 700; }
+.basket-totals .is-due dd { color: var(--brand-gold-bright); }
+
+.basket-checkout { width: 100%; }
+
+/* --- guest form --- */
+.guest-form {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+.guest-form h2 { font-family: var(--font-display); font-size: 1.5rem; margin: 0 0 1rem; }
+
+.guest-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+.guest-fields .field em { color: var(--brand-gold); font-style: normal; }
+
+.field-error { font-size: 0.75rem; color: var(--status-rejected); margin-top: 0.1875rem; }
+.form-error {
+  color: var(--status-rejected);
+  font-size: 0.875rem;
+  margin: 0 0 0.75rem;
+}
+
+.policy {
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+  margin-bottom: 1.25rem;
+}
+.policy h3 { font-size: 1rem; margin: 0 0 0.5rem; }
+.policy p { font-size: 0.8125rem; line-height: 1.5; margin: 0 0 0.5rem; }
+
+.checkbox { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer; }
+.checkbox input { width: 1rem; height: 1rem; }
+
+.payment-note { font-size: 0.8125rem; margin: 0 0 1rem; }
+
+/* --- confirmation --- */
+.confirmation {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+  max-width: 34rem;
+}
+.confirmation-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  color: var(--links-green);
+  font-weight: 700;
+  margin: 0;
+}
+.confirmation h2 {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  letter-spacing: 0.06em;
+  margin: 0.25rem 0 0.5rem;
+  color: var(--brand-gold-bright);
+}
+
+.confirmation-items { list-style: none; margin: 1.25rem 0; padding: 0; }
+.confirmation-items li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.875rem;
+}

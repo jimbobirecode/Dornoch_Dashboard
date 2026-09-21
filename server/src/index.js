@@ -8,6 +8,7 @@ import cors from 'cors';
 
 import authRoutes from './routes/auth.js';
 import bookingRoutes from './routes/bookings.js';
+import bookingEngineRoutes from './routes/booking.js';
 import analyticsRoutes from './routes/analytics.js';
 import emailRoutes from './routes/emails.js';
 import operatorRoutes from './routes/operators.js';
@@ -38,6 +39,9 @@ app.get('/api/health', async (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/bookings', bookingRoutes);
+// The public booking engine. Unauthenticated by design: a visitor books
+// before the club knows who they are.
+app.use('/api/book', bookingEngineRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/emails', emailRoutes);
 app.use('/api/operators', operatorRoutes);
