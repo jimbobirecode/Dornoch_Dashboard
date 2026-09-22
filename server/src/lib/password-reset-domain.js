@@ -130,8 +130,13 @@ export function hashToken(token) {
 }
 
 /** The link the email carries. */
-export function resetLink(appUrl, token) {
-  return `${trimSlash(appUrl)}/reset-password?token=${encodeURIComponent(token)}`;
+export function resetLink(appUrl, token, purpose = 'reset') {
+  // An invitation gets its own path so the address bar agrees with the email
+  // that sent it — somebody accepting an invitation has no password to reset.
+  // Both paths render the same screen and redeem the same token; the page
+  // reads the purpose from the token, not from the URL.
+  const path = purpose === 'invite' ? '/accept-invite' : '/reset-password';
+  return `${trimSlash(appUrl)}${path}?token=${encodeURIComponent(token)}`;
 }
 
 /**
@@ -179,6 +184,8 @@ export function buildResetTemplateData({
   fromEmail,
   purpose = 'reset',
   invitedBy = null,
+  role = null,
+  toEmail = null,
 }) {
   const club = clubName ?? BRAND.fullName;
   const inviting = purpose === 'invite';
@@ -193,13 +200,27 @@ export function buildResetTemplateData({
     // a phishing attempt.
     headline: inviting ? 'Set your password' : 'Reset your password',
     invited_by: invitedBy,
+    // The same value under the name an invitation template naturally reaches
+    // for. Templates are written by hand, against whichever spelling reads
+    // best; sending both costs nothing and saves a broken email.
+    inviter_name: invitedBy,
     first_name: firstName(user),
     full_name: user?.full_name ?? user?.fullName ?? user?.username ?? '',
     username: user?.username ?? '',
     club_name: club,
     reset_url: link,
-    // Both spellings: dynamic templates in the wild use either.
+    // Every spelling a template might use for the one thing that must never be
+    // empty. A link is the entire point of these emails: a template reaching
+    // for a name nothing supplies renders a button that goes nowhere, and the
+    // reader has no way to tell that from a broken account.
     reset_link: link,
+    invite_url: link,
+    invite_link: link,
+    action_url: link,
+    url: link,
+    // Who the account is for. `email` is where it went, `role` what it grants.
+    email: toEmail ?? user?.email ?? null,
+    role: role ? ROLE_LABELS[role] ?? role : null,
     expires_in_minutes: ttlMinutes,
     expires_in: describeMinutes(ttlMinutes),
     support_email: fromEmail ?? null,
@@ -267,6 +288,9 @@ export function describeMinutes(minutes) {
   if (value % 60 === 0) return plural(value / 60, 'hour');
   return plural(value, 'minute');
 }
+
+/** How a role is spelled to somebody who does not work on the dashboard. */
+const ROLE_LABELS = { admin: 'Administrator', staff: 'Staff' };
 
 const plural = (count, noun) => `${count} ${noun}${count === 1 ? '' : 's'}`;
 
