@@ -3,12 +3,50 @@
 -- Builds on migration_add_password_reset.sql, which must be run first — an
 -- invitation is a password-reset token with a different purpose and a longer
 -- life, so the two share one table rather than growing a second copy of the
--- same machinery.
+-- same machinery. That order is checked below rather than assumed: running
+-- these the wrong way round otherwise fails halfway through, with a bare
+-- "column email does not exist" and no hint as to which file to run.
 --
 -- Safe to run more than once, and safe against a live database: everything
 -- here is additive and the dashboard detects at runtime whether it has been
 -- applied. An un-migrated install keeps working exactly as it does today —
 -- the Users page simply says which migration to run.
+
+-- ---------------------------------------------------------------------------
+-- Prerequisite
+-- ---------------------------------------------------------------------------
+
+-- Stop before changing anything if the migration this one extends has not been
+-- run. Failing on the first statement, with the remedy in the message, beats
+-- failing on the twentieth with a column name.
+DO $$
+DECLARE
+  missing TEXT[] := ARRAY[]::TEXT[];
+BEGIN
+  IF to_regclass('public.dashboard_users') IS NULL THEN
+    RAISE EXCEPTION
+      'public.dashboard_users does not exist. This is not the dashboard database, '
+      'or it has never been set up — run scripts/seed.mjs or seed_royal_dornoch_demo.sql first.';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+     WHERE table_schema = 'public' AND table_name = 'dashboard_users' AND column_name = 'email'
+  ) THEN
+    missing := array_append(missing, 'dashboard_users.email');
+  END IF;
+
+  IF to_regclass('public.password_resets') IS NULL THEN
+    missing := array_append(missing, 'public.password_resets');
+  END IF;
+
+  IF array_length(missing, 1) > 0 THEN
+    RAISE EXCEPTION
+      'Run migration_add_password_reset.sql first — this migration extends it, and % %',
+      array_to_string(missing, ' and '),
+      CASE WHEN array_length(missing, 1) = 1 THEN 'is missing.' ELSE 'are missing.' END;
+  END IF;
+END $$;
 
 -- ---------------------------------------------------------------------------
 -- Accounts
@@ -67,9 +105,13 @@ DO $$
 BEGIN
   CREATE UNIQUE INDEX IF NOT EXISTS idx_dashboard_users_email
     ON public.dashboard_users (LOWER(email)) WHERE email IS NOT NULL;
-EXCEPTION WHEN unique_violation THEN
-  RAISE WARNING 'dashboard_users holds two accounts with the same email address. '
-                'Resolve the duplicate, then re-run this migration to add the index.';
+EXCEPTION
+  WHEN unique_violation THEN
+    RAISE WARNING 'dashboard_users holds two accounts with the same email address. '
+                  'Resolve the duplicate, then re-run this migration to add the index.';
+  WHEN undefined_column THEN
+    RAISE WARNING 'dashboard_users has no email column — run migration_add_password_reset.sql, '
+                  'then re-run this migration to add the index.';
 END $$;
 
 DO $$
@@ -77,8 +119,8 @@ BEGIN
   CREATE UNIQUE INDEX IF NOT EXISTS idx_dashboard_users_username
     ON public.dashboard_users (LOWER(username));
 EXCEPTION WHEN unique_violation THEN
-  RAISE WARNING 'dashboard_users holds two accounts whose usernames differ only by case. '
-                'Resolve the duplicate, then re-run this migration to add the index.';
+    RAISE WARNING 'dashboard_users holds two accounts whose usernames differ only by case. '
+                  'Resolve the duplicate, then re-run this migration to add the index.';
 END $$;
 
 -- ---------------------------------------------------------------------------
