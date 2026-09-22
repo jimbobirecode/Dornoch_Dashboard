@@ -318,13 +318,18 @@ name and wording on outgoing email), and `VITE_CLUB_NAME` / `VITE_CLUB_FULL_NAME
 never renamed to follow a rebrand. Rows carrying the old `royal_dornoch` id
 display under the current brand name automatically, so nothing needs migrating.
 
-**The logo** is `web/public/logo.png`, served at `/logo.png`. Drop the club's
-artwork in there; it is drawn at 168px wide, so supply it at 336px or larger
-for a retina screen. Dark-on-transparent artwork is given a light plate so it
-reads against the dark sidebar — set `VITE_CLUB_LOGO_ON_DARK=true` if the mark
-already reads on dark and does not want one. Set `VITE_CLUB_LOGO=` empty to
-drop the image entirely and render the wordmark instead, which needs no
-artwork at all.
+**The logo** is `web/public/logo.png`, served at `/logo.png` — currently the
+TeeMail mark, cropped to its artwork at 841×189 so it fills the 168px it is
+drawn at rather than floating in a square of empty canvas.
+
+To change it, drop new artwork in and crop it to the mark. It renders 168px
+wide, so supply roughly 350px or more for a retina screen. The mark is dark on
+transparent, so it is given a light plate to read against the dark sidebar —
+without one its wordmark sits at 1.26:1 against `--surface-0` and effectively
+disappears; on the plate it is 11.49:1. Set `VITE_CLUB_LOGO_ON_DARK=true` only
+for artwork that already reads on a dark background. Set `VITE_CLUB_LOGO=`
+empty to drop the image entirely and render the styled wordmark instead, which
+needs no artwork at all.
 
 Two names are deliberately **not** branding and were left alone:
 `VERO_PARTNER_SOURCE` defaults to `dornoch` because it must match the key
