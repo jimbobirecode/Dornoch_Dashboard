@@ -307,8 +307,20 @@ because that spreadsheet is what goes to the bookkeeper.
 carry everything club-specific — the equivalent of `club_config.py` for the
 JavaScript app.
 
-Surfaces are Dornoch green, accent gorse gold, text links sand, all taken from
-the `royal_dornoch` profile in `club_config.py`.
+The dashboard is branded **TeeMail Golf Club** by default. Every name is
+configurable rather than hard-coded, because one deployment serves whichever
+club it is pointed at: `CLUB_NAME` / `CLUB_FULL_NAME` on the server (the sender
+name and wording on outgoing email), and `VITE_CLUB_NAME` / `VITE_CLUB_FULL_NAME`
+/ `VITE_CLUB_TAGLINE` / `VITE_CLUB_LOGO` in the browser build. See
+`.env.example`.
+
+`customer_id` on a booking or an account is **data, not branding** — it is
+never renamed to follow a rebrand. Rows carrying the old `royal_dornoch` id
+display under the current brand name automatically, so nothing needs migrating.
+
+Surfaces are green, accent gold, text sand. The palette is still the one
+validated against the `#1D3B2A` chart surface — see **Chart colours** below
+before changing any of it.
 
 ### Reports & Analytics
 

@@ -3,10 +3,10 @@ import { BRAND } from '../lib/brand.js';
 /**
  * The club's mark.
  *
- * The supplied logo is dark green on transparent, so it needs a light plate
- * to read against the Dornoch-green sidebar — the repo has no light-on-dark
- * variant (assets/royal-dornoch-logo.png and -dark.png are byte-identical).
- * Drop a reversed logo in and set BRAND.logoOnDark to skip the plate.
+ * A dark-on-transparent logo cannot read against the dark sidebar, so it is
+ * given a light plate. Drop in artwork that already reads on dark and set
+ * VITE_CLUB_LOGO_ON_DARK=true to skip the plate; with no logo at all the
+ * wordmark below is used instead, which needs no artwork.
  */
 export default function Wordmark({ showTagline = true }) {
   if (BRAND.logoUrl) {

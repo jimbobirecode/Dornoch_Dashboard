@@ -3,20 +3,25 @@
  * `club_config.py`. The colour tokens live at the top of `theme.css`; this file
  * carries the names, the mark and the wording that changes per customer.
  *
- * Values are taken from the `royal_dornoch` profile in `club_config.py`.
+ * Each value can be set at build time (`VITE_CLUB_NAME` and friends) because
+ * one codebase now serves whichever club it is built for. The defaults are
+ * TeeMail's own, so a build that sets nothing is branded rather than blank.
+ * The server has a matching set — see `server/src/lib/brand.js`.
  */
+const env = import.meta.env ?? {};
+
 export const BRAND = {
-  name: 'Royal Dornoch',
-  fullName: 'Royal Dornoch Golf Club',
-  tagline: 'Visitor Bookings',
+  name: env.VITE_CLUB_NAME ?? 'TeeMail',
+  fullName: env.VITE_CLUB_FULL_NAME ?? 'TeeMail Golf Club',
+  tagline: env.VITE_CLUB_TAGLINE ?? 'Visitor Bookings',
 
   /** Served from `web/public`. Set to null to fall back to the wordmark. */
-  logoUrl: '/logo.png',
+  logoUrl: env.VITE_CLUB_LOGO ?? '/logo.png',
   /**
-   * The supplied artwork is dark green on transparent, so it needs a light
-   * plate on the green sidebar. Set true once a reversed logo is dropped in.
+   * Whether the artwork already reads on a dark surface. When false the mark
+   * is given a light plate, which is what a dark-on-transparent logo needs.
    */
-  logoOnDark: false,
+  logoOnDark: env.VITE_CLUB_LOGO_ON_DARK === 'true',
 
   /** 'Accommodation' here; Streamsong calls the same thing 'Lodging'. */
   lodgingLabel: 'Accommodation',

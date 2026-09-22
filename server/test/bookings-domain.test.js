@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { BRAND } from '../src/lib/brand.js';
 import {
   ALLOWED_STATUSES,
   PIPELINE_STAGES,
@@ -52,9 +53,18 @@ test('a row with nothing but an id does not throw', () => {
 });
 
 test('club ids are spelled for display', () => {
-  assert.equal(clubDisplayName('royal_dornoch'), 'Royal Dornoch Golf Club');
+  // `customer_id` is data and is never renamed to follow the branding, so the
+  // ids this install owns all spell as whatever it is currently branded as.
+  // Asserted against BRAND rather than a literal: the next rebrand should not
+  // break a test about display names.
+  assert.equal(clubDisplayName('royal_dornoch'), BRAND.fullName);
+  assert.equal(clubDisplayName('teemail'), BRAND.fullName);
+  assert.equal(clubDisplayName(null), BRAND.fullName);
+
+  // A club with a name of its own keeps it, and an unknown id is title-cased
+  // rather than guessed at.
+  assert.equal(clubDisplayName('streamsong'), 'Streamsong Resort');
   assert.equal(clubDisplayName('pebble_beach'), 'Pebble Beach');
-  assert.equal(clubDisplayName(null), 'Golf Club');
 });
 
 test('status vocabulary', () => {
