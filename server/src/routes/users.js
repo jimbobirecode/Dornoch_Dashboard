@@ -307,12 +307,14 @@ async function sendInvite(user, actor) {
       templateId: invite.templateId,
       data: buildResetTemplateData({
         user,
-        link: resetLink(config.appUrl, token),
+        link: resetLink(config.appUrl, token, 'invite'),
         ttlMinutes: invite.ttlMinutes,
         clubName: clubDisplayName(user.customer_id),
         fromEmail: config.fromEmail,
         purpose: 'invite',
         invitedBy: actor?.fullName || actor?.username || null,
+        role: user.role ?? null,
+        toEmail: address,
       }),
     });
 

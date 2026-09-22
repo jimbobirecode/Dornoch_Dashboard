@@ -72,11 +72,53 @@ test('the token is random, hashed, and never stored in the clear', () => {
   assert.ok(!/[+/=]/.test(first.token), 'base64url survives an email client');
 });
 
-test('the link is absolute and escapes the token', () => {
+test('the link is absolute, escapes the token, and says what it is for', () => {
   assert.equal(
     resetLink('https://dashboard.example.com/', 'a+b/c='),
     'https://dashboard.example.com/reset-password?token=a%2Bb%2Fc%3D',
   );
+  assert.equal(
+    resetLink('https://dashboard.example.com', 'tok', 'invite'),
+    'https://dashboard.example.com/accept-invite?token=tok',
+    'an invitation has no password to reset, and its URL should not claim otherwise',
+  );
+});
+
+test('an invitation fills every variable a hand-written template reaches for', () => {
+  const link = resetLink('https://dashboard.teemail.io', 'tok', 'invite');
+  const data = buildResetTemplateData({
+    user: { username: 'ann', full_name: 'Ann Bell', email: 'ann@club.com' },
+    link,
+    ttlMinutes: 10080,
+    clubName: 'Royal Dornoch Golf Club',
+    fromEmail: 'support@teemail.io',
+    purpose: 'invite',
+    invitedBy: 'Jamie Kenny',
+    role: 'staff',
+    toEmail: 'ann@club.com',
+  });
+
+  // The link must never be empty under any spelling: a template reaching for a
+  // name nothing supplies renders a button that goes nowhere.
+  for (const key of ['reset_url', 'reset_link', 'invite_url', 'invite_link', 'action_url', 'url']) {
+    assert.equal(data[key], link, `${key} must carry the link`);
+  }
+
+  assert.equal(data.inviter_name, 'Jamie Kenny');
+  assert.equal(data.invited_by, 'Jamie Kenny', 'both spellings, for whichever the template uses');
+  assert.equal(data.email, 'ann@club.com');
+  assert.equal(data.role, 'Staff', 'spelled for somebody who does not work on the dashboard');
+  assert.equal(data.expires_in, '7 days');
+  assert.equal(data.first_name, 'Ann');
+  assert.equal(data.club_name, 'Royal Dornoch Golf Club');
+  assert.equal(data.support_email, 'support@teemail.io');
+
+  // A reset carries no inviter and no role — the template's {{#if}} branches
+  // have to fall through rather than print 'null'.
+  const reset = buildResetTemplateData({ user: { username: 'ann' }, link, ttlMinutes: 60 });
+  assert.equal(reset.inviter_name, null);
+  assert.equal(reset.role, null);
+  assert.equal(reset.invite_url, link, 'the link is present whatever the purpose');
 });
 
 test('where to send: the column first, an email-shaped username second', () => {

@@ -33,6 +33,9 @@ export default function App() {
       <Routes>
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        {/* An invitation is the same screen and the same token — only the
+            address bar differs, so it agrees with the email that sent it. */}
+        <Route path="/accept-invite" element={<ResetPassword />} />
         <Route path="*" element={<Login onLogin={login} />} />
       </Routes>
     );
