@@ -307,8 +307,35 @@ because that spreadsheet is what goes to the bookkeeper.
 carry everything club-specific — the equivalent of `club_config.py` for the
 JavaScript app.
 
-Surfaces are Dornoch green, accent gorse gold, text links sand, all taken from
-the `royal_dornoch` profile in `club_config.py`.
+The dashboard is branded **TeeMail Golf Club** by default. Every name is
+configurable rather than hard-coded, because one deployment serves whichever
+club it is pointed at: `CLUB_NAME` / `CLUB_FULL_NAME` on the server (the sender
+name and wording on outgoing email), and `VITE_CLUB_NAME` / `VITE_CLUB_FULL_NAME`
+/ `VITE_CLUB_TAGLINE` / `VITE_CLUB_LOGO` in the browser build. See
+`.env.example`.
+
+`customer_id` on a booking or an account is **data, not branding** — it is
+never renamed to follow a rebrand. Rows carrying the old `royal_dornoch` id
+display under the current brand name automatically, so nothing needs migrating.
+
+**The logo** is `web/public/logo.png`, served at `/logo.png`. Drop the club's
+artwork in there; it is drawn at 168px wide, so supply it at 336px or larger
+for a retina screen. Dark-on-transparent artwork is given a light plate so it
+reads against the dark sidebar — set `VITE_CLUB_LOGO_ON_DARK=true` if the mark
+already reads on dark and does not want one. Set `VITE_CLUB_LOGO=` empty to
+drop the image entirely and render the wordmark instead, which needs no
+artwork at all.
+
+Two names are deliberately **not** branding and were left alone:
+`VERO_PARTNER_SOURCE` defaults to `dornoch` because it must match the key
+registered on the Club Vero side (`PARTNER_INGEST_KEYS=dornoch:…`), and
+changing it here without changing it there breaks the survey integration.
+`club_config.py` still carries the Streamlit-era profile for the old
+dashboard.
+
+Surfaces are green, accent gold, text sand. The palette is still the one
+validated against the `#1D3B2A` chart surface — see **Chart colours** below
+before changing any of it.
 
 ### Reports & Analytics
 

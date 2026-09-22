@@ -1,8 +1,8 @@
 {
-  "name": "royal-dornoch-dashboard",
+  "name": "teemail-dashboard",
   "private": true,
   "version": "2.0.0",
-  "description": "Royal Dornoch Golf Club visitor bookings dashboard",
+  "description": "TeeMail Golf Club visitor bookings dashboard",
   "workspaces": [
     "server",
     "web"

@@ -3,6 +3,8 @@
  * the pipeline statuses, the row-to-JSON shape the SPA consumes, and the
  * tee-time extraction ported from `modules/utils/helpers.py`.
  */
+import { BRAND } from './brand.js';
+
 
 /** The funnel, in order. A booking only ever moves forward through these. */
 export const PIPELINE_STAGES = ['Inquiry', 'Requested', 'Confirmed', 'Booked'];
@@ -26,16 +28,25 @@ export function normaliseStatus(status) {
   return ALL_STATUSES.find((known) => known.toLowerCase() === text.toLowerCase()) ?? text;
 }
 
+/**
+ * Club ids that have a spelling of their own.
+ *
+ * `customer_id` is data — it is on every booking and every account — so it is
+ * never renamed to follow the branding. The club this install is currently
+ * branded as is spelled from BRAND, whatever id its rows happen to carry.
+ */
 const CLUB_NAMES = {
-  royal_dornoch: 'Royal Dornoch Golf Club',
-  royaldornoch: 'Royal Dornoch Golf Club',
-  dornoch: 'Royal Dornoch Golf Club',
+  teemail: BRAND.fullName,
+  teemail_golf: BRAND.fullName,
+  royal_dornoch: BRAND.fullName,
+  royaldornoch: BRAND.fullName,
+  dornoch: BRAND.fullName,
   streamsong: 'Streamsong Resort',
 };
 
 /** The club a user is scoped to, spelled for display. */
 export function clubDisplayName(clubId) {
-  if (!clubId) return 'Golf Club';
+  if (!clubId) return BRAND.fullName;
   const key = String(clubId).trim().toLowerCase().replace(/-/g, '_');
   if (CLUB_NAMES[key]) return CLUB_NAMES[key];
 

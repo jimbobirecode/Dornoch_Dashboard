@@ -5,20 +5,24 @@
  * Only the values the API itself needs live here: how money and dates are
  * spelled in outgoing email, and the names a guest sees on it.
  *
- * Values are taken from the `royal_dornoch` profile in `club_config.py`.
+ * Every name is overridable from the environment, because one deployment of
+ * this dashboard now serves whichever club it is pointed at. The defaults are
+ * TeeMail's own, so an install that sets nothing is branded rather than blank.
  */
+const env = process.env;
+
 export const BRAND = {
-  clubId: 'royal_dornoch',
-  name: 'Royal Dornoch',
-  fullName: 'Royal Dornoch Golf Club',
+  clubId: env.CLUB_ID ?? 'teemail',
+  name: env.CLUB_NAME ?? 'TeeMail',
+  fullName: env.CLUB_FULL_NAME ?? 'TeeMail Golf Club',
 
   /** The sender name on customer-journey email; FROM_NAME overrides it. */
-  fromName: 'Royal Dornoch Golf Club',
+  fromName: env.FROM_NAME ?? env.CLUB_FULL_NAME ?? 'TeeMail Golf Club',
 
   /** Used when a booking carries no course of its own. */
-  defaultCourse: 'Championship Course',
+  defaultCourse: env.DEFAULT_COURSE ?? 'Championship Course',
 
-  locale: 'en-GB',
-  currency: 'GBP',
-  timeZone: 'Europe/London',
+  locale: env.CLUB_LOCALE ?? 'en-GB',
+  currency: env.CLUB_CURRENCY ?? 'GBP',
+  timeZone: env.CLUB_TIMEZONE ?? 'Europe/London',
 };

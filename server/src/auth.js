@@ -4,7 +4,9 @@ import jwt from 'jsonwebtoken';
 import { query } from './db.js';
 import { getUserColumns } from './lib/schema.js';
 
-const COOKIE_NAME = 'dornoch_session';
+// Renaming this signs everybody out once: a browser holding the old cookie is
+// simply not sent the new one, and the next request reads as unauthenticated.
+const COOKIE_NAME = process.env.SESSION_COOKIE_NAME ?? 'teemail_session';
 const TOKEN_TTL = '12h';
 
 // A generated secret keeps dev working, but every instance would then sign with

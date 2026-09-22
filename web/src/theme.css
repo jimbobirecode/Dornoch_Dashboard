@@ -1,11 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500;700&display=swap');
 
 /* ---------------------------------------------------------------
-   Royal Dornoch design tokens.
+   TeeMail design tokens.
 
-   Drawn from the club profile in club_config.py: Dornoch green for
-   surfaces, gorse gold for accent and the pipeline ramp, links sand
-   and dune grass for text.
+   Links green for surfaces, gorse gold for accent and the pipeline
+   ramp, sand and dune grass for text. The palette was derived for
+   Royal Dornoch and kept through the rebrand on purpose: its ramps
+   are validated against this exact chart surface, and the figures
+   below are only true of these values.
 
    The status ramp is a single-hue gorse gold ordinal scale validated
    against the #1D3B2A chart surface: monotone lightness, >=0.06 step
@@ -21,7 +23,7 @@
 :root {
   color-scheme: dark;
 
-  /* Dornoch green — links turf under a Sutherland sky */
+  /* Links green — turf under a northern sky */
   --surface-0: #12261B;
   --surface-1: #1D3B2A;
   --surface-2: #2A4F3A;

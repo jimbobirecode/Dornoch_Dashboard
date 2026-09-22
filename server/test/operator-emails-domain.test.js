@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { BRAND } from '../src/lib/brand.js';
 import {
   OPERATOR_CAMPAIGNS,
   RESEND_GUARD_DAYS,
@@ -269,7 +270,7 @@ test('the template data carries the account, the totals and every line twice', (
   assert.equal(data.has_overdue, true);
   assert.equal(data.days_overdue, '31');
   assert.equal(data.credit_limit, '£5,000.00');
-  assert.equal(data.club_name, 'Royal Dornoch Golf Club');
+  assert.equal(data.club_name, BRAND.fullName, 'the club this install is branded as');
   assert.match(data.credit_terms, /Balance due 14 days before play/);
 
   // The array a handlebars {{#each}} walks…
