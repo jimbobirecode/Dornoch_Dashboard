@@ -20,6 +20,32 @@ import { BRAND } from './brand.js';
 /** How long an emailed link stays usable, unless the environment says otherwise. */
 export const DEFAULT_TTL_MINUTES = 60;
 
+/**
+ * The two reasons this dashboard emails somebody a one-time link.
+ *
+ * They are the same object — a hashed token with an expiry — so they share one
+ * table and one redemption path. What differs is who was expecting the email
+ * and therefore how long the link may live: a reset was asked for seconds ago,
+ * an invitation lands on somebody who did not know it was coming and may be
+ * away for a few days.
+ */
+export const TOKEN_PURPOSES = {
+  reset: {
+    id: 'reset',
+    defaultTtlMinutes: 60,
+    ttlEnv: 'PASSWORD_RESET_TTL_MINUTES',
+    templateEnv: 'SENDGRID_TEMPLATE_PASSWORD_RESET',
+  },
+  invite: {
+    id: 'invite',
+    defaultTtlMinutes: 7 * 24 * 60,
+    ttlEnv: 'USER_INVITE_TTL_MINUTES',
+    templateEnv: 'SENDGRID_TEMPLATE_USER_INVITE',
+  },
+};
+
+export const PURPOSES = Object.keys(TOKEN_PURPOSES);
+
 /** The shortest password the dashboard accepts, matching the change-password screen. */
 export const MIN_PASSWORD_LENGTH = 8;
 
@@ -42,11 +68,26 @@ export function readResetConfig(env = process.env) {
   if (!env.APP_URL && !env.PUBLIC_URL) missing.push('APP_URL');
   const complete = missing;
 
+  // Each purpose has its own template and its own life. The invitation
+  // template is optional: an install that never creates accounts by email does
+  // not need one, and the Users page says so rather than failing to send.
+  const purposes = {};
+  for (const purpose of Object.values(TOKEN_PURPOSES)) {
+    purposes[purpose.id] = {
+      id: purpose.id,
+      templateId: env[purpose.templateEnv] ?? null,
+      templateEnv: purpose.templateEnv,
+      configured: Boolean(env[purpose.templateEnv]),
+      ttlMinutes: positiveInt(env[purpose.ttlEnv], purpose.defaultTtlMinutes),
+    };
+  }
+
   return {
     hasApiKey: Boolean(env.SENDGRID_API_KEY),
     apiKey: env.SENDGRID_API_KEY ?? null,
     fromEmail: env.FROM_EMAIL ?? null,
     fromName: env.FROM_NAME ?? BRAND.fromName,
+    purposes,
     templateId: env.SENDGRID_TEMPLATE_PASSWORD_RESET ?? null,
     // Where the link points. Without it the email would carry a relative path
     // and be useless, so it is required rather than guessed.
@@ -130,20 +171,37 @@ export function maskAddress(address) {
 }
 
 /** The dynamic-template data the reset email is rendered from. */
-export function buildResetTemplateData({ user, link, ttlMinutes, clubName, fromEmail }) {
+export function buildResetTemplateData({
+  user,
+  link,
+  ttlMinutes,
+  clubName,
+  fromEmail,
+  purpose = 'reset',
+  invitedBy = null,
+}) {
+  const club = clubName ?? BRAND.fullName;
+  const inviting = purpose === 'invite';
+
   return {
-    subject: `Reset your ${clubName ?? BRAND.fullName} dashboard password`,
+    purpose,
+    subject: inviting
+      ? `You have been given access to the ${club} dashboard`
+      : `Reset your ${club} dashboard password`,
+    // An invitation has to say what the link is for and who sent it; somebody
+    // who was not expecting the email has no other way to tell it apart from
+    // a phishing attempt.
+    headline: inviting ? 'Set your password' : 'Reset your password',
+    invited_by: invitedBy,
     first_name: firstName(user),
     full_name: user?.full_name ?? user?.fullName ?? user?.username ?? '',
     username: user?.username ?? '',
-    club_name: clubName ?? BRAND.fullName,
+    club_name: club,
     reset_url: link,
     // Both spellings: dynamic templates in the wild use either.
     reset_link: link,
     expires_in_minutes: ttlMinutes,
-    expires_in: ttlMinutes >= 60 && ttlMinutes % 60 === 0
-      ? `${ttlMinutes / 60} hour${ttlMinutes === 60 ? '' : 's'}`
-      : `${ttlMinutes} minutes`,
+    expires_in: describeMinutes(ttlMinutes),
     support_email: fromEmail ?? null,
   };
 }
@@ -200,6 +258,17 @@ export function createThrottle({ limit = 5, windowMs = 15 * 60_000 } = {}) {
     },
   };
 }
+
+/** '45 minutes', '1 hour', '7 days' — an invitation lives too long to read in hours. */
+export function describeMinutes(minutes) {
+  const value = Number(minutes);
+  if (!Number.isFinite(value) || value <= 0) return '0 minutes';
+  if (value % 1440 === 0) return plural(value / 1440, 'day');
+  if (value % 60 === 0) return plural(value / 60, 'hour');
+  return plural(value, 'minute');
+}
+
+const plural = (count, noun) => `${count} ${noun}${count === 1 ? '' : 's'}`;
 
 function firstName(user) {
   const full = String(user?.full_name ?? user?.fullName ?? '').trim();

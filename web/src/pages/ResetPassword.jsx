@@ -47,8 +47,8 @@ export default function ResetPassword() {
     setBusy(true);
     setError(null);
     try {
-      await api.resetPassword(token, password, confirm);
-      setState({ status: 'done' });
+      const result = await api.resetPassword(token, password, confirm);
+      setState((current) => ({ ...current, status: 'done', purpose: result?.purpose ?? current.purpose }));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -75,7 +75,9 @@ export default function ResetPassword() {
         {state.status === 'done' && (
           <>
             <div className="banner success">
-              Your password has been changed. Sign in with your new password.
+              {state.purpose === 'invite'
+                ? 'Your password is set. Sign in to reach the dashboard.'
+                : 'Your password has been changed. Sign in with your new password.'}
             </div>
             <Link to="/" className="btn-primary" style={{ textAlign: 'center' }}>
               Go to sign in
@@ -85,8 +87,15 @@ export default function ResetPassword() {
 
         {state.status === 'ready' && (
           <>
-            <h1 style={{ fontSize: '1.125rem' }}>Choose a new password</h1>
+            <h1 style={{ fontSize: '1.125rem' }}>
+              {state.purpose === 'invite' ? 'Set your password' : 'Choose a new password'}
+            </h1>
             <p className="muted" style={{ margin: 0, fontSize: '0.8125rem' }}>
+              {state.purpose === 'invite' && (
+                <>
+                  You have been given access to the {state.clubName ?? 'club'} dashboard.{' '}
+                </>
+              )}
               For {state.username}
               {state.email ? ` (${state.email})` : ''}. At least 8 characters.
             </p>
@@ -117,7 +126,7 @@ export default function ResetPassword() {
             </label>
 
             <button type="submit" className="btn-primary" disabled={busy}>
-              {busy ? 'Saving…' : 'Set new password'}
+              {busy ? 'Saving…' : state.purpose === 'invite' ? 'Set password' : 'Set new password'}
             </button>
           </>
         )}

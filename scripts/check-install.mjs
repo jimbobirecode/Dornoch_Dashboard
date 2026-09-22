@@ -151,6 +151,28 @@ async function main() {
       warn('password reset is unavailable — run migration_add_password_reset.sql to add dashboard_users.email and public.password_resets');
     }
 
+    console.log('\nRoles and invitations');
+    if (userCols.has('role')) {
+      const { rows: [roleRow] } = await client.query(
+        `SELECT COUNT(*) FILTER (WHERE role = 'admin' AND is_active IS NOT FALSE)::int AS admins,
+                COUNT(*) FILTER (WHERE password_hash IS NULL AND temp_password IS NULL)::int AS pending,
+                COUNT(*)::int AS users
+           FROM public.dashboard_users`,
+      );
+      if (roleRow.admins) {
+        ok(`roles in place — ${roleRow.admins} active administrator(s) of ${roleRow.users} account(s)`);
+      } else {
+        fail(`roles in place but no active administrator of ${roleRow.users} account(s) — nobody can manage logins; promote one with UPDATE public.dashboard_users SET role = \'admin\' WHERE username = ...`);
+      }
+      if (roleRow.pending) {
+        warn(`${roleRow.pending} account(s) have no password yet — they are waiting on an invitation link`);
+      }
+    } else {
+      // Not a failure: every existing account keeps working and is treated as
+      // an administrator, which is exactly what it could already do.
+      warn('dashboard_users has no role column — run migration_add_user_management.sql to manage accounts from the dashboard');
+    }
+
     console.log('\nStatus values');
     const { rows: statusRows } = await client.query(
       'SELECT DISTINCT status FROM public.bookings WHERE status IS NOT NULL',

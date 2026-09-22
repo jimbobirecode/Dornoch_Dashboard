@@ -29,19 +29,55 @@ npm run build && npm start   # production, single origin on :3001
 
 ## Signing in
 
-Accounts live in `public.dashboard_users`. A new account is created with a
-temporary password and `must_change_password`, and is forced to set a permanent
-bcrypt-hashed one on first sign-in — the same flow the Streamlit dashboard had.
+Accounts live in `public.dashboard_users`.
 
-**Password reset** is self-service, and emails through the same SendGrid sender
-the guest campaigns use:
+### Creating accounts
+
+The **Users** page (administrators only) adds, edits and removes logins. Run
+its migration first — it needs the password-reset one below, so run them in
+this order:
 
 ```bash
 psql "$DATABASE_URL" -f migration_add_password_reset.sql
+psql "$DATABASE_URL" -f migration_add_user_management.sql
 ```
 
-That adds `dashboard_users.email` and a `password_resets` table, and fills the
-address in for accounts whose username is already one. Then set
+That adds two roles, the audit columns behind an account, and marks an
+outstanding link as an invitation rather than a reset. **Every account that
+exists when the migration runs becomes an `admin`** — they could already do
+everything, so this changes nothing on the day; new accounts default to
+`staff` and are promoted deliberately. The backfill is guarded on "no admins
+yet", so re-running the migration never promotes anybody a second time.
+
+| Role | May do |
+|---|---|
+| `admin` | Everything, including managing accounts |
+| `staff` | Everything except the Users page |
+
+A new account is created **with no password at all**. It is emailed a one-time
+link and the person sets their own, so a working credential never travels
+through an inbox and an administrator never knows a colleague's password. The
+link is the same object as a password reset, stored in the same table with
+`purpose = 'invite'` and a longer life (`USER_INVITE_TTL_MINUTES`, 7 days by
+default, against an hour for a reset). Set `SENDGRID_TEMPLATE_USER_INVITE` for
+the invitation wording; without it an account can still be created, and the
+page says what is missing rather than failing silently.
+
+Three things the Users page will not let anybody do, because the undo for each
+is a database console: remove their own administrator access, deactivate their
+own account, or demote, deactivate or delete the last active administrator.
+Deleting an account also kills any outstanding link it holds.
+
+The older Streamlit path still works: an account given a temporary password and
+`must_change_password` is forced to set a permanent bcrypt-hashed one on first
+sign-in.
+
+### Password reset
+
+Self-service, emailing through the same SendGrid sender the guest campaigns
+use. `migration_add_password_reset.sql` (above) adds `dashboard_users.email`
+and a `password_resets` table, and fills the address in for accounts whose
+username is already one. Then set
 `SENDGRID_TEMPLATE_PASSWORD_RESET` and `APP_URL` (see `.env.example`). Until
 both the migration and the configuration are in place the sign-in screen hides
 the link rather than offering one that cannot send, and `/api/auth/reset-config`

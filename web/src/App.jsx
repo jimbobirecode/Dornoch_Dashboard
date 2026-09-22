@@ -9,6 +9,7 @@ import Bookings from './pages/Bookings.jsx';
 import Emails from './pages/Emails.jsx';
 import Operators from './pages/Operators.jsx';
 import Reminders from './pages/Reminders.jsx';
+import Users from './pages/Users.jsx';
 
 // The charting library is only needed on the analytics route — keep it out of
 // the initial bundle so the bookings table loads fast.
@@ -64,6 +65,13 @@ export default function App() {
           <NavLink to="/analytics" className={navClass}>
             Analytics
           </NavLink>
+          {/* Account administration is hidden from staff. The API refuses them
+              too — this only saves them clicking on a page they cannot use. */}
+          {user.role === 'admin' && (
+            <NavLink to="/users" className={navClass}>
+              Users
+            </NavLink>
+          )}
         </nav>
 
         <div style={{ marginTop: 'auto' }} className="stack">
@@ -88,6 +96,10 @@ export default function App() {
             <Route path="/operators" element={<Operators />} />
             <Route path="/emails" element={<Emails />} />
             <Route path="/reminders" element={<Reminders />} />
+            <Route
+              path="/users"
+              element={user.role === 'admin' ? <Users /> : <Navigate to="/bookings" replace />}
+            />
             {/* A signed-in reader following an old reset link goes to the
                 bookings table rather than to a form they no longer need. */}
             <Route path="*" element={<Navigate to="/bookings" replace />} />

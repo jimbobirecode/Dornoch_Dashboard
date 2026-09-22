@@ -97,6 +97,12 @@ const USER_COLUMNS = [
   'is_active',
   'must_change_password',
   'last_login',
+
+  // migration_add_user_management.sql
+  'role',
+  'created_at',
+  'created_by',
+  'invited_at',
 ];
 
 /**
@@ -208,6 +214,8 @@ const PASSWORD_RESET_COLUMNS = [
   'used_at',
   'requested_ip',
   'created_at',
+  // migration_add_user_management.sql
+  'purpose',
 ];
 
 export function getPasswordResetColumns() {
@@ -224,6 +232,24 @@ export function getPasswordResetColumns() {
 export async function hasPasswordReset() {
   const [users, resets] = await Promise.all([getUserColumns(), getPasswordResetColumns()]);
   return users.has('email') && resets.has('token_hash') && resets.has('expires_at');
+}
+
+/**
+ * Whether this install has run `migration_add_user_management.sql`.
+ *
+ * Roles are the half that matters: without them every account is equal and the
+ * Users page cannot say who may administer, so it explains itself instead of
+ * offering controls that would not stick.
+ */
+export async function hasUserManagement() {
+  const users = await getUserColumns();
+  return users.has('role') && users.has('created_at');
+}
+
+/** Whether an invitation can be told apart from a reset. */
+export async function hasInvitePurpose() {
+  const resets = await getPasswordResetColumns();
+  return resets.has('purpose');
 }
 
 /** Only for tests and the seed path, which can create tables mid-process. */

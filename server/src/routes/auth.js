@@ -85,6 +85,7 @@ router.get('/me', requireAuth, (req, res) => {
       fullName: req.user.fullName,
       customerId: req.user.customerId,
       clubName: clubDisplayName(req.user.customerId),
+      role: req.user.role ?? 'admin',
     },
   });
 });
@@ -192,7 +193,16 @@ router.post('/reset-password/check', async (req, res, next) => {
   try {
     const found = await findResetRow(req.body?.token);
     if (!found.ok) return res.status(400).json({ error: found.reason });
-    res.json({ ok: true, email: maskAddress(found.row.email), username: found.row.username });
+    res.json({
+      ok: true,
+      email: maskAddress(found.row.email),
+      username: found.row.username,
+      // 'invite' means this account has never had a password, so the page
+      // says "set" rather than "reset" and does not imply they forgot one.
+      purpose: found.row.purpose ?? 'reset',
+      fullName: found.row.full_name ?? '',
+      clubName: clubDisplayName(found.row.customer_id),
+    });
   } catch (err) {
     next(err);
   }
@@ -223,7 +233,11 @@ router.post('/reset-password', async (req, res, next) => {
     // The new password is proved by signing in with it, so no session is
     // issued here — a reset link should never be a way in by itself.
     clearSession(res);
-    res.json({ ok: true, username: found.row.username });
+    res.json({
+      ok: true,
+      username: found.row.username,
+      purpose: found.row.purpose ?? 'reset',
+    });
   } catch (err) {
     next(err);
   }
@@ -257,12 +271,17 @@ async function findResetRow(token) {
   }
 
   const { rows } = await query(
-    `SELECT r.*, u.username
+    `SELECT r.*, u.username, u.full_name, u.customer_id, u.is_active
        FROM public.password_resets r
        JOIN public.dashboard_users u ON u.id = r.user_id
       WHERE r.token_hash = $1`,
     [hashToken(token)],
   );
+
+  // A deactivated account's outstanding link must not be a way back in.
+  if (rows[0] && rows[0].is_active === false) {
+    return { ok: false, reason: 'This account is no longer active. Ask an administrator.' };
+  }
 
   const usable = resetRowUsable(rows[0]);
   return usable.ok ? { ok: true, row: rows[0] } : usable;
@@ -281,6 +300,7 @@ function publicUser(user) {
     fullName: user.full_name,
     customerId: user.customer_id,
     clubName: clubDisplayName(user.customer_id),
+    role: user.role ?? 'admin',
   };
 }
 
