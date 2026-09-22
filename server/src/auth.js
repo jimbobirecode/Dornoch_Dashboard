@@ -23,6 +23,10 @@ export function issueSession(res, user) {
       username: user.username,
       customerId: user.customer_id,
       fullName: user.full_name,
+      // An install that has not run migration_add_user_management.sql has no
+      // roles, and every account there can already do everything — so the
+      // absent column reads as 'admin' rather than locking the page away.
+      role: user.role ?? 'admin',
     },
     JWT_SECRET,
     { expiresIn: TOKEN_TTL },
@@ -50,6 +54,19 @@ export function requireAuth(req, res, next) {
   } catch {
     res.status(401).json({ error: 'Session expired' });
   }
+}
+
+/**
+ * Account administration only. Sits after requireAuth, never instead of it.
+ *
+ * The 403 deliberately does not say whether the thing being asked for exists:
+ * a staff account probing for user ids should learn nothing from the answer.
+ */
+export function requireAdmin(req, res, next) {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'Administrator access is required' });
+  }
+  next();
 }
 
 /**

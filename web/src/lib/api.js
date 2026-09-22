@@ -57,6 +57,14 @@ export const api = {
       body: { token, newPassword, confirmPassword },
     }),
 
+  // Account administration. Every one of these is admin-only server-side.
+  usersConfig: () => request('/users/config'),
+  users: () => request('/users'),
+  createUser: (user) => request('/users', { method: 'POST', body: user }),
+  updateUser: (id, patch) => request(`/users/${id}`, { method: 'PATCH', body: patch }),
+  deleteUser: (id) => request(`/users/${id}`, { method: 'DELETE' }),
+  inviteUser: (id) => request(`/users/${id}/invite`, { method: 'POST' }),
+
   bookings: () => request('/bookings'),
   setStatus: (bookingId, status) =>
     request(`/bookings/${encodeURIComponent(bookingId)}/status`, {
