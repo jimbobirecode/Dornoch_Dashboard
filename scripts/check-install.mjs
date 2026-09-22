@@ -167,6 +167,17 @@ async function main() {
       if (roleRow.pending) {
         warn(`${roleRow.pending} account(s) have no password yet — they are waiting on an invitation link`);
       }
+
+      // Sign-in is by email address. A legacy account without one still works
+      // on its username, but nobody will guess that from the login screen.
+      const { rows: [{ noEmail }] } = await client.query(
+        'SELECT COUNT(*) FILTER (WHERE email IS NULL)::int AS "noEmail" FROM public.dashboard_users',
+      );
+      if (noEmail) {
+        warn(`${noEmail} account(s) have no email address — they must sign in with their username, which the login screen no longer asks for; set dashboard_users.email for them`);
+      } else {
+        ok('every account has an email address to sign in with');
+      }
     } else {
       // Not a failure: every existing account keeps working and is treated as
       // an administrator, which is exactly what it could already do.

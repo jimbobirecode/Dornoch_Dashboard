@@ -45,14 +45,20 @@ const requestThrottle = createThrottle({ limit: 5, windowMs: 15 * 60_000 });
 const redeemThrottle = createThrottle({ limit: 20, windowMs: 15 * 60_000 });
 
 router.post('/login', async (req, res, next) => {
-  const { username, password } = req.body ?? {};
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Username and password are required' });
+  // `username` is still read so an older client keeps working; either field
+  // carries the same thing — an address, or a legacy login.
+  const { email, username, password } = req.body ?? {};
+  const identifier = email ?? username;
+
+  if (!identifier || !password) {
+    return res.status(400).json({ error: 'Email address and password are required' });
   }
 
   try {
-    const result = await authenticateUser(username, password);
-    if (!result) return res.status(401).json({ error: 'Invalid username or password' });
+    const result = await authenticateUser(identifier, password);
+    // The same answer whether the account does not exist or the password is
+    // wrong: a different one would say which addresses have accounts here.
+    if (!result) return res.status(401).json({ error: 'Invalid email address or password' });
 
     const { user, mustChangePassword } = result;
     issueSession(res, user);

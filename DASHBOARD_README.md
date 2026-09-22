@@ -29,7 +29,18 @@ npm run build && npm start   # production, single origin on :3001
 
 ## Signing in
 
-Accounts live in `public.dashboard_users`.
+Accounts live in `public.dashboard_users`, and people sign in with their
+**email address**.
+
+The username is still accepted, and still exists on the row — it is what the
+audit columns record, and it is the only way in for an account created before
+this dashboard had an `email` column. Both are matched case-insensitively and
+trimmed. So switching to addresses locks nobody out, but the login screen no
+longer asks for a username: run `npm run check` to see which accounts still
+have no address, and fill `dashboard_users.email` in for them.
+
+A new account created from the Users page needs only a name, an address and a
+role — the address becomes the username too, so there is nothing to invent.
 
 ### Creating accounts
 

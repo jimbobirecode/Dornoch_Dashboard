@@ -73,11 +73,26 @@ export function requireAdmin(req, res, next) {
  * Mirrors the Streamlit login: a first-time user signs in with the plaintext
  * temp password and is then forced to set a permanent bcrypt-hashed one.
  */
-export async function authenticateUser(username, password) {
+/**
+ * Sign in by email address.
+ *
+ * The username is still accepted as a fallback, deliberately. Accounts created
+ * before this dashboard had an `email` column have nothing else to sign in
+ * with, and an install that switched to addresses cleanly would lock those
+ * people out of the system that was meant to serve them. Both are matched
+ * case-insensitively, because nobody types their own address the same way
+ * twice.
+ */
+export async function authenticateUser(identifier, password) {
   const columns = await getUserColumns();
+  const byEmail = columns.has('email') ? ' OR LOWER(email) = LOWER($1)' : '';
+
   const { rows } = await query(
-    `SELECT ${columns.selectList} FROM public.dashboard_users WHERE username = $1`,
-    [username],
+    `SELECT ${columns.selectList} FROM public.dashboard_users
+      WHERE LOWER(username) = LOWER($1)${byEmail}
+      ORDER BY (LOWER(username) = LOWER($1)) DESC, id
+      LIMIT 1`,
+    [String(identifier ?? '').trim()],
   );
 
   const user = rows[0];

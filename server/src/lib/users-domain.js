@@ -68,8 +68,21 @@ export function serialiseUser(row) {
 export function validateNewUser(input, { requireEmail = true } = {}) {
   const errors = [];
 
-  const username = String(input?.username ?? '').trim().toLowerCase();
-  if (username.length < MIN_USERNAME_LENGTH) {
+  const supplied = String(input?.email ?? '').trim();
+  const address = cleanAddress(supplied);
+
+  // People sign in with their address, so that is the login. A username is
+  // only carried separately for installs that already had one, and for the
+  // audit columns that record who changed what.
+  const typed = String(input?.username ?? '').trim().toLowerCase();
+  const username = typed || address || '';
+
+  // A derived username is only ever as good as the address it came from, so a
+  // bad address must not also be reported as a bad username — the reader would
+  // be left correcting a field the form no longer shows them.
+  if (!typed && !address) {
+    // The email error below is the whole story.
+  } else if (username.length < MIN_USERNAME_LENGTH) {
     errors.push(`Username must be at least ${MIN_USERNAME_LENGTH} characters`);
   } else if (username.length > MAX_USERNAME_LENGTH) {
     errors.push(`Username must be ${MAX_USERNAME_LENGTH} characters or fewer`);
@@ -80,9 +93,8 @@ export function validateNewUser(input, { requireEmail = true } = {}) {
   // An address is how the invitation reaches them. Without one the account
   // could only ever be given a password by hand, which is the practice this
   // screen exists to replace.
-  const supplied = String(input?.email ?? '').trim();
-  const email = cleanAddress(supplied) ?? (cleanAddress(username) ? username : null);
-  if (supplied && !cleanAddress(supplied)) {
+  const email = address ?? (cleanAddress(username) ? username : null);
+  if (supplied && !address) {
     // Say what is wrong with what they typed, rather than that something is
     // missing — they can see perfectly well that they filled the field in.
     errors.push('That email address does not look valid');

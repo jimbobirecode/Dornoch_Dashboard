@@ -71,6 +71,27 @@ test('a new account needs a name, a usable login and somewhere to send the invit
   assert.equal(byUsername.value.email, 'ann@club.com');
 });
 
+test('the address is the login, so it is the username unless one is given', () => {
+  const derived = validateNewUser({ email: 'Ann@Club.com', fullName: 'Ann Bell' });
+  assert.equal(derived.ok, true, 'no username need be invented');
+  assert.equal(derived.value.username, 'ann@club.com');
+  assert.equal(derived.value.email, 'ann@club.com');
+
+  // An install that already has usernames can still set one explicitly.
+  const explicit = validateNewUser({ email: 'ann@club.com', username: 'annb', fullName: 'Ann Bell' });
+  assert.equal(explicit.value.username, 'annb');
+  assert.equal(explicit.value.email, 'ann@club.com');
+
+  // A bad address must not also be reported as a bad username: the form no
+  // longer shows a username field, so that error would be uncorrectable.
+  const bad = validateNewUser({ email: 'nope', fullName: 'Ann Bell' });
+  assert.deepEqual(bad.errors, ['That email address does not look valid']);
+  assert.deepEqual(
+    validateNewUser({ fullName: 'Ann Bell' }).errors,
+    ['A valid email address is required to send the invitation'],
+  );
+});
+
 test('a patch may only touch the fields it is allowed to', () => {
   const patch = validateUserPatch({ fullName: ' Ann Bell ', role: 'ADMIN', active: false, email: 'A@B.co' });
   assert.deepEqual(patch.patch, {

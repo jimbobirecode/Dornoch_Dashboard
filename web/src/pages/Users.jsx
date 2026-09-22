@@ -112,7 +112,7 @@ export default function Users() {
 }
 
 function NewUserForm({ onCreate, disabled }) {
-  const blank = { username: '', email: '', fullName: '', role: 'staff' };
+  const blank = { email: '', fullName: '', role: 'staff' };
   const [form, setForm] = useState(blank);
 
   function handleSubmit(event) {
@@ -128,8 +128,8 @@ function NewUserForm({ onCreate, disabled }) {
       <div>
         <h3>Add someone</h3>
         <p className="muted" style={{ margin: '0.15rem 0 0', fontSize: '0.8125rem' }}>
-          They are emailed a link and choose their own password — you never see it, and no password
-          travels through an inbox.
+          Their email address is their sign-in. They are emailed a link and choose their own
+          password — you never see it, and no password travels through an inbox.
         </p>
       </div>
 
@@ -139,12 +139,16 @@ function NewUserForm({ onCreate, disabled }) {
           <input value={form.fullName} onChange={set('fullName')} required />
         </label>
         <label className="stack grow" style={{ gap: '0.35rem' }}>
-          <span className="label">Email</span>
-          <input type="email" value={form.email} onChange={set('email')} required />
-        </label>
-        <label className="stack grow" style={{ gap: '0.35rem' }}>
-          <span className="label">Username</span>
-          <input value={form.username} onChange={set('username')} required />
+          <span className="label">Email address</span>
+          <input
+            type="email"
+            value={form.email}
+            onChange={set('email')}
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck="false"
+            required
+          />
         </label>
         <label className="stack" style={{ gap: '0.35rem' }}>
           <span className="label">Role</span>
@@ -175,8 +179,8 @@ function UserTable({ users, busy, onInvite, onPatch, onDelete }) {
         <thead>
           <tr>
             <th>Name</th>
+            <th>Signs in with</th>
             <th>Username</th>
-            <th>Email</th>
             <th>Role</th>
             <th>State</th>
             <th>Last signed in</th>
@@ -187,8 +191,13 @@ function UserTable({ users, busy, onInvite, onPatch, onDelete }) {
           {sorted.map((user) => (
             <tr key={user.id} style={{ opacity: user.active ? 1 : 0.55 }}>
               <td>{user.fullName || '—'}</td>
-              <td className="mono">{user.username}</td>
-              <td>{user.email ?? '—'}</td>
+              <td className="mono">{user.email ?? user.username}</td>
+              {/* Only worth showing where it differs from the address — for an
+                  account created before addresses, it is the only way in. */}
+              <td className="mono muted">
+                {user.email && user.email !== user.username ? user.username : ''}
+                {!user.email ? user.username : ''}
+              </td>
               <td>
                 <select
                   value={user.role}
