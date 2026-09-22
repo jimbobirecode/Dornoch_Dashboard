@@ -318,6 +318,21 @@ name and wording on outgoing email), and `VITE_CLUB_NAME` / `VITE_CLUB_FULL_NAME
 never renamed to follow a rebrand. Rows carrying the old `royal_dornoch` id
 display under the current brand name automatically, so nothing needs migrating.
 
+**The logo** is `web/public/logo.png`, served at `/logo.png`. Drop the club's
+artwork in there; it is drawn at 168px wide, so supply it at 336px or larger
+for a retina screen. Dark-on-transparent artwork is given a light plate so it
+reads against the dark sidebar — set `VITE_CLUB_LOGO_ON_DARK=true` if the mark
+already reads on dark and does not want one. Set `VITE_CLUB_LOGO=` empty to
+drop the image entirely and render the wordmark instead, which needs no
+artwork at all.
+
+Two names are deliberately **not** branding and were left alone:
+`VERO_PARTNER_SOURCE` defaults to `dornoch` because it must match the key
+registered on the Club Vero side (`PARTNER_INGEST_KEYS=dornoch:…`), and
+changing it here without changing it there breaks the survey integration.
+`club_config.py` still carries the Streamlit-era profile for the old
+dashboard.
+
 Surfaces are green, accent gold, text sand. The palette is still the one
 validated against the `#1D3B2A` chart surface — see **Chart colours** below
 before changing any of it.

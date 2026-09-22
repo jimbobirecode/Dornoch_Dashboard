@@ -1,5 +1,5 @@
 /**
- * Seed the dashboard with realistic sample bookings for Royal Dornoch.
+ * Seed the dashboard with realistic sample bookings.
  *
  *   npm run seed              -- add sample data, keep anything already there
  *   npm run seed -- --reset   -- remove previously seeded rows first
@@ -12,6 +12,7 @@ import 'dotenv/config';
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { pool } from '../server/src/db.js';
+import { BRAND } from '../server/src/lib/brand.js';
 
 const DEMO_PREFIX = 'RD-DEMO-';
 const USERNAME = process.env.SEED_USERNAME ?? 'demo';
@@ -189,8 +190,11 @@ async function resolveClub(client) {
     process.exit(1);
   }
 
-  console.log('No dashboard users yet — using club "royal_dornoch".');
-  return 'royal_dornoch';
+  // A fresh database gets this install's own club id. An existing one is
+  // never re-labelled — the branches above take the club from its own rows,
+  // because customer_id is data and renaming it would orphan every booking.
+  console.log(`No dashboard users yet — using club "${BRAND.clubId}".`);
+  return BRAND.clubId;
 }
 
 async function ensureUser(client, CLUB) {

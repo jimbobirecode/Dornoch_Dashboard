@@ -45,7 +45,7 @@ export const PARTY_SIZE_BUCKETS = [
   { key: '9+', min: 9, max: Infinity },
 ];
 
-/** Tee sheet bands. Dornoch's first tee goes out early and light runs late. */
+/** Tee sheet bands, cut for a links course: an early first tee, light running late. */
 export const TIME_BANDS = [
   { key: 'Before 09:00', min: 0, max: 8.9999 },
   { key: '09:00–11:59', min: 9, max: 11.9999 },
