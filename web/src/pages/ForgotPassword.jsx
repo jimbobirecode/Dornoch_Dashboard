@@ -49,8 +49,8 @@ export default function ForgotPassword() {
 
         <h1 style={{ fontSize: '1.125rem' }}>Reset your password</h1>
         <p className="muted" style={{ margin: 0, fontSize: '0.8125rem' }}>
-          Enter your username or the email address on your account and we will send you a link to
-          set a new password.
+          Enter the email address you sign in with and we will send you a link to set a new
+          password.
         </p>
 
         {error && <div className="banner error">{error}</div>}
@@ -60,11 +60,15 @@ export default function ForgotPassword() {
         {!sent && (
           <>
             <label className="stack" style={{ gap: '0.35rem' }}>
-              <span className="label">Username or email</span>
+              <span className="label">Email address</span>
               <input
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
-                autoComplete="username"
+                autoComplete="email"
+                inputMode="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
                 autoFocus
                 required
               />

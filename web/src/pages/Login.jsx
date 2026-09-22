@@ -4,7 +4,7 @@ import { api } from '../lib/api.js';
 import Wordmark from '../components/Wordmark.jsx';
 
 export default function Login({ onLogin }) {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -28,7 +28,7 @@ export default function Login({ onLogin }) {
     setBusy(true);
     setError(null);
     try {
-      await onLogin(username, password);
+      await onLogin(email.trim(), password);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -44,11 +44,18 @@ export default function Login({ onLogin }) {
         {error && <div className="banner error">{error}</div>}
 
         <label className="stack" style={{ gap: '0.35rem' }}>
-          <span className="label">Username</span>
+          <span className="label">Email address</span>
+          {/* Not type="email": accounts created before this dashboard had
+              addresses sign in with a plain username, and the browser would
+              refuse to submit one. */}
           <input
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-            autoComplete="username"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="email"
+            inputMode="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck="false"
             autoFocus
             required
           />
