@@ -130,6 +130,12 @@ export function serialiseBooking(row) {
     operatorStatusEmailSentAt: timestamp(row.operator_status_email_sent_at),
     operatorPaymentEmailSentAt: timestamp(row.operator_payment_email_sent_at),
 
+    // Where this booking came from. An install without the column has only
+    // ever taken enquiries, which is what 'teemail' means.
+    source: row.source ?? 'teemail',
+    importBatch: row.import_batch ?? null,
+    importedAt: timestamp(row.imported_at),
+
     timestamp: timestamp(row.timestamp ?? row.created_at),
     customerConfirmedAt: timestamp(row.customer_confirmed_at),
     updatedAt: timestamp(row.updated_at),

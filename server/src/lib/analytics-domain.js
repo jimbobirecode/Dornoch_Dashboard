@@ -19,6 +19,21 @@ import {
 /** Revenue is only counted once a booking is actually committed. */
 const COMMITTED = new Set(['Confirmed', 'Booked']);
 
+/**
+ * A booking that came through the enquiry pipeline.
+ *
+ * A tee sheet uploaded from the club's own system is real play and belongs in
+ * every report about what happens on the course — but it was never an enquiry,
+ * so counting it in the funnel, the conversion rate, the request grid or the
+ * response times would credit TeeMail with work it did not do. Those four ask
+ * this first; everything else counts every booking.
+ */
+export function isEnquiry(booking) {
+  return (booking.source ?? 'teemail') !== 'imported';
+}
+
+const enquiriesOnly = (bookings) => bookings.filter(isEnquiry);
+
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 /** Monday-first, the way a tee sheet is read. */
 export const WEEK_ORDER = [...DAY_NAMES.slice(1), DAY_NAMES[0]];
@@ -153,6 +168,13 @@ function periodTotals(bookings) {
   const committed = bookings.filter((booking) => COMMITTED.has(booking.status));
   const lost = bookings.filter((booking) => TERMINAL_STATUSES.includes(booking.status));
 
+  // Volume and money count every booking — an uploaded round is still played
+  // and still paid for. Conversion and loss are rates *of enquiries*, so they
+  // are measured against those alone or an upload would flatter them.
+  const enquiries = enquiriesOnly(bookings);
+  const enquiriesCommitted = enquiries.filter((booking) => COMMITTED.has(booking.status));
+  const enquiriesLost = enquiries.filter((booking) => TERMINAL_STATUSES.includes(booking.status));
+
   return {
     bookings: bookings.length,
     revenue: round2(sum(committed, 'total')),
@@ -160,8 +182,10 @@ function periodTotals(bookings) {
     players: sum(bookings, 'players'),
     committed: committed.length,
     lost: lost.length,
-    conversionRate: round1(bookings.length ? (committed.length / bookings.length) * 100 : 0),
-    cancellationRate: round1(bookings.length ? (lost.length / bookings.length) * 100 : 0),
+    enquiries: enquiries.length,
+    imported: bookings.length - enquiries.length,
+    conversionRate: round1(enquiries.length ? (enquiriesCommitted.length / enquiries.length) * 100 : 0),
+    cancellationRate: round1(enquiries.length ? (enquiriesLost.length / enquiries.length) * 100 : 0),
   };
 }
 
@@ -171,7 +195,7 @@ function periodTotals(bookings) {
  * office *where* enquiries are actually being lost.
  */
 export function buildFunnel(bookings) {
-  const live = bookings.filter((booking) => !TERMINAL_STATUSES.includes(booking.status));
+  const live = enquiriesOnly(bookings).filter((booking) => !TERMINAL_STATUSES.includes(booking.status));
   const top = live.length || 1;
 
   let previousCount = null;
@@ -348,7 +372,9 @@ export function buildRequestUtilisation(bookings) {
   let placed = 0;
   let unplaced = 0;
 
-  for (const booking of bookings) {
+  // An uploaded booking asked for nothing — it arrived already made — so it is
+  // neither demand nor a conversion of any.
+  for (const booking of enquiriesOnly(bookings)) {
     const day = weekdayFor(booking.date);
     const requested = day ? index.get(`${bandFor(requestedTeeHour(booking))}|${day}`) : null;
     const committed = COMMITTED.has(booking.status);
@@ -844,7 +870,7 @@ export function buildResponseTimes(bookings) {
   const hours = [];
   let unanswered = 0;
 
-  for (const booking of bookings) {
+  for (const booking of enquiriesOnly(bookings)) {
     const asked = Date.parse(booking.formSubmittedAt ?? booking.timestamp ?? '');
     if (Number.isNaN(asked)) continue;
 

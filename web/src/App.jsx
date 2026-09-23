@@ -11,6 +11,7 @@ import Operators from './pages/Operators.jsx';
 import Reminders from './pages/Reminders.jsx';
 import Users from './pages/Users.jsx';
 import Waitlist from './pages/Waitlist.jsx';
+import Import from './pages/Import.jsx';
 
 // The charting library is only needed on the analytics route — keep it out of
 // the initial bundle so the bookings table loads fast.
@@ -69,6 +70,9 @@ export default function App() {
           <NavLink to="/reminders" className={navClass}>
             Operator Reminders
           </NavLink>
+          <NavLink to="/import" className={navClass}>
+            Upload Tee Sheet
+          </NavLink>
           <NavLink to="/analytics" className={navClass}>
             Analytics
           </NavLink>
@@ -99,6 +103,7 @@ export default function App() {
         <Suspense fallback={<div className="empty">Loading…</div>}>
           <Routes>
             <Route path="/bookings" element={<Bookings user={user} />} />
+            <Route path="/import" element={<Import />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/waitlist" element={<Waitlist />} />
             <Route path="/operators" element={<Operators />} />

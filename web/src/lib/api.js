@@ -77,6 +77,12 @@ export const api = {
   deleteWaitlistEntry: (waitlistId) =>
     request(`/waitlist/${encodeURIComponent(waitlistId)}`, { method: 'DELETE' }),
 
+  // Uploading the club's own tee sheet.
+  importConfig: () => request('/imports/config'),
+  previewImport: (file) => request('/imports/preview', { method: 'POST', body: file }),
+  commitImport: (file) => request('/imports/commit', { method: 'POST', body: file }),
+  undoImport: (batchId) => request(`/imports/${encodeURIComponent(batchId)}`, { method: 'DELETE' }),
+
   bookings: () => request('/bookings'),
   setStatus: (bookingId, status) =>
     request(`/bookings/${encodeURIComponent(bookingId)}/status`, {

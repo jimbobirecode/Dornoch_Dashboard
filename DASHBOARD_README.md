@@ -132,6 +132,49 @@ Beyond the Streamlit dashboard it adds the trade side of the book — tour
 operator accounts, their credit terms, where the money sits, and the two
 reminder campaigns that chase it. See **Tour Operators** below.
 
+## Upload tee sheet
+
+Bookings made in the club's own system, brought in so marketing and the
+reports can see them.
+
+```bash
+psql "$DATABASE_URL" -f migration_add_booking_source.sql
+```
+
+Upload a CSV or Excel export. Column headers are matched against a list of
+aliases, so `Confirmation Number`, `Pax`, `Green Fees` and `Playing Date` all
+land where they should, and any header it could not place is reported rather
+than silently dropped. Dates are read in ISO, slash, dotted and named-month
+forms; times in 24-hour, 12-hour or Excel's fractional-day. Blank rows are
+skipped, and a row whose date cannot be read is refused with its line number
+instead of being guessed at.
+
+It works in two steps on purpose. **Check the file** reads it and reports what
+it found without writing anything; **Import** then writes. The failure worth
+protecting against is silent: a sheet whose `03/04` means 4 March imports
+perfectly and is wrong in every row, so the preview shows the dates it read and
+which reading it used. Day-first is the default and can be switched.
+
+Re-uploading the same file is safe. A row is a duplicate if its reference is
+already here, or if the same guest already has a booking at the same time on
+the same day — including a row a file repeats within itself. An upload can also
+be undone as a batch, which removes only the rows nobody has edited since.
+
+### Imported bookings and the reports
+
+Everything uploaded is marked `source = 'imported'`, and that distinction runs
+through the analytics:
+
+| Counts imported bookings | Does not |
+|---|---|
+| Revenue, players, party size, course mix, busiest days, lodging, payments | Conversion funnel, conversion and loss rates, booking request utilisation, time to answer |
+
+The rule is that an uploaded booking is **real play but was never an enquiry**.
+Counting it in the funnel would credit TeeMail with converting something it
+never saw; leaving it out of revenue would understate what the course actually
+took. The KPI row reports `enquiries` and `imported` separately so the split is
+visible rather than implied.
+
 ## Waitlist
 
 Parties waiting for a time the club could not give them, and — the point of the
