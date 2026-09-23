@@ -13,6 +13,7 @@ import emailRoutes from './routes/emails.js';
 import operatorRoutes from './routes/operators.js';
 import reminderRoutes from './routes/reminders.js';
 import userRoutes from './routes/users.js';
+import waitlistRoutes from './routes/waitlist.js';
 import { pool } from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -44,6 +45,7 @@ app.use('/api/emails', emailRoutes);
 app.use('/api/operators', operatorRoutes);
 app.use('/api/reminders', reminderRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/waitlist', waitlistRoutes);
 
 const distDir = path.resolve(__dirname, '../../web/dist');
 if (fs.existsSync(distDir)) {

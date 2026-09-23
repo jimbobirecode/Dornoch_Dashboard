@@ -218,6 +218,29 @@ const PASSWORD_RESET_COLUMNS = [
   'purpose',
 ];
 
+/** Every column of `waitlist`; the table may not exist. */
+const WAITLIST_COLUMNS = [
+  'id', 'waitlist_id', 'guest_email', 'guest_name', 'requested_date', 'preferred_time',
+  'time_flexibility', 'players', 'golf_course', 'status', 'priority', 'notes',
+  'notification_sent', 'notification_sent_at', 'created_at', 'updated_at', 'club',
+  // migration_add_waitlist_conversion.sql
+  'converted_booking_id', 'converted_at',
+];
+
+export function getWaitlistColumns() {
+  return cached('waitlist', WAITLIST_COLUMNS);
+}
+
+/**
+ * Whether the waitlist can be reported on. The conversion link is the half
+ * that matters: without it an entry cannot say which booking it became, which
+ * is the one number the page exists to produce.
+ */
+export async function hasWaitlist() {
+  const columns = await getWaitlistColumns();
+  return columns.has('waitlist_id') && columns.has('converted_booking_id');
+}
+
 export function getPasswordResetColumns() {
   return cached('password_resets', PASSWORD_RESET_COLUMNS);
 }

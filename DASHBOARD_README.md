@@ -126,12 +126,50 @@ type, preferences, cost, resort fee). Columns are detected at runtime, so an
 un-migrated database still loads — the same tolerance
 `modules/database/bookings.py` has.
 
-**Not ported:** the waitlist and pro-shop items. Those remain in the Streamlit
-app.
+**Not ported:** the pro-shop items. Those remain in the Streamlit app.
 
 Beyond the Streamlit dashboard it adds the trade side of the book — tour
 operator accounts, their credit terms, where the money sits, and the two
 reminder campaigns that chase it. See **Tour Operators** below.
+
+## Waitlist
+
+Parties waiting for a time the club could not give them, and — the point of the
+page — what became of them.
+
+```bash
+psql "$DATABASE_URL" -f migration_add_waitlist_conversion.sql
+```
+
+The table itself predates this dashboard, but nothing recorded *which booking*
+an entry became: the Streamlit conversion wrote "Converted from waitlist:
+WL-0001" into the booking's note and left it there. That cannot be reported on
+without parsing prose, and it carries no timestamp. The migration adds
+`converted_booking_id` and `converted_at`, and recovers the history already
+sitting in those notes — so conversions made before today still count.
+
+Converting from the dashboard writes the booking and the link in **one
+transaction**. A booking without its link is a conversion the report cannot
+see; a link without its booking is a conversion that never happened. Either
+half alone is worse than neither.
+
+Two rules keep the numbers honest:
+
+- **Conversion is measured against entries that reached an ending** — converted
+  plus cancelled. An entry still waiting has not failed to convert, it has not
+  answered yet, and counting it as a failure makes a healthy list look broken.
+  The rate against *every* entry is shown beside it, because a part-worked list
+  flatters the first number.
+- A conversion whose booking was later cancelled **still converted** — the
+  waitlist did its job — but its value is not counted as revenue, the same rule
+  the rest of the reports follow. Where a recovered conversion's booking cannot
+  be found at all, it is counted and flagged, so the revenue figure is a floor
+  rather than a total.
+
+`Converted` is not a status anybody can type. Setting it has to create the
+booking it converted to, so the API refuses it on the ordinary status edit and
+directs the caller at the convert action. A converted entry cannot be deleted
+either: it is the only record of that conversion.
 
 ## Guest Emails
 
