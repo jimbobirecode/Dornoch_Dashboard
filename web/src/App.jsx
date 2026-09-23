@@ -5,6 +5,7 @@ import Login from './pages/Login.jsx';
 import ChangePassword from './pages/ChangePassword.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
+import ManageBooking from './pages/ManageBooking.jsx';
 import Bookings from './pages/Bookings.jsx';
 import Emails from './pages/Emails.jsx';
 import Operators from './pages/Operators.jsx';
@@ -12,6 +13,7 @@ import Reminders from './pages/Reminders.jsx';
 import Users from './pages/Users.jsx';
 import Waitlist from './pages/Waitlist.jsx';
 import Import from './pages/Import.jsx';
+import Requests from './pages/Requests.jsx';
 
 // The charting library is only needed on the analytics route — keep it out of
 // the initial bundle so the bookings table loads fast.
@@ -35,6 +37,7 @@ export default function App() {
       <Routes>
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/manage-booking" element={<ManageBooking />} />
         {/* An invitation is the same screen and the same token — only the
             address bar differs, so it agrees with the email that sent it. */}
         <Route path="/accept-invite" element={<ResetPassword />} />
@@ -57,6 +60,9 @@ export default function App() {
         <nav className="stack" style={{ gap: '0.25rem' }}>
           <NavLink to="/bookings" className={navClass}>
             Bookings
+          </NavLink>
+          <NavLink to="/requests" className={navClass}>
+            Guest Requests
           </NavLink>
           <NavLink to="/waitlist" className={navClass}>
             Waitlist
@@ -103,8 +109,12 @@ export default function App() {
         <Suspense fallback={<div className="empty">Loading…</div>}>
           <Routes>
             <Route path="/bookings" element={<Bookings user={user} />} />
+            {/* A guest's link works for a signed-in member of staff too —
+                they are often the one checking it. */}
+            <Route path="/manage-booking" element={<ManageBooking />} />
             <Route path="/import" element={<Import />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/requests" element={<Requests />} />
             <Route path="/waitlist" element={<Waitlist />} />
             <Route path="/operators" element={<Operators />} />
             <Route path="/emails" element={<Emails />} />

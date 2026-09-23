@@ -83,6 +83,16 @@ export const api = {
   commitImport: (file) => request('/imports/commit', { method: 'POST', body: file }),
   undoImport: (batchId) => request(`/imports/${encodeURIComponent(batchId)}`, { method: 'DELETE' }),
 
+  // A guest managing their own booking. Signed out — the link is the credential.
+  manageBooking: (ref, token) =>
+    request(`/changes/booking${queryString({ ref, token })}`),
+  requestBookingChange: (body) => request('/changes/request', { method: 'POST', body }),
+
+  // The club's side of those requests.
+  changeRequests: () => request('/changes'),
+  resolveChangeRequest: (id, decision, note) =>
+    request(`/changes/${id}/${decision}`, { method: 'POST', body: { note } }),
+
   bookings: () => request('/bookings'),
   setStatus: (bookingId, status) =>
     request(`/bookings/${encodeURIComponent(bookingId)}/status`, {

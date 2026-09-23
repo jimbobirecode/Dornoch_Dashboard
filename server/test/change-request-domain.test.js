@@ -1,0 +1,143 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  MANAGEABLE_STATUSES,
+  daysUntilPlay,
+  describeOptions,
+  describeRequest,
+  manageLink,
+  readChangePolicy,
+  serialiseChangeRequest,
+  signBooking,
+  validateChangeRequest,
+  verifyBookingToken,
+} from '../src/lib/change-request-domain.js';
+
+const SECRET = 'a-test-secret';
+const OPEN = { canCancel: true, canAmend: true, autoCancel: false, reason: 'The club will confirm' };
+
+test('a manage link is signed, and scoped to its booking and club', () => {
+  const token = signBooking('RDG-1', SECRET, 'teemail');
+
+  assert.equal(token.length, 32);
+  assert.equal(verifyBookingToken('RDG-1', token, SECRET, 'teemail'), true);
+  assert.equal(verifyBookingToken('RDG-2', token, SECRET, 'teemail'), false, 'not another booking');
+  assert.equal(verifyBookingToken('RDG-1', token, SECRET, 'other'), false, 'not another club');
+  assert.equal(verifyBookingToken('RDG-1', token, 'different-secret', 'teemail'), false);
+  assert.equal(verifyBookingToken('RDG-1', '', SECRET, 'teemail'), false);
+  assert.equal(verifyBookingToken('RDG-1', token, null, 'teemail'), false, 'no secret means no access');
+  assert.equal(signBooking('RDG-1', null), null);
+
+  // A token of the wrong length must be refused rather than throw, which is
+  // what a naive timingSafeEqual would do.
+  assert.equal(verifyBookingToken('RDG-1', 'short', SECRET, 'teemail'), false);
+});
+
+test('the link is absolute and escapes what it carries', () => {
+  assert.equal(
+    manageLink('https://dash.teemail.io/', 'RDG/1', 'tok+en'),
+    'https://dash.teemail.io/manage-booking?ref=RDG%2F1&token=tok%2Ben',
+  );
+});
+
+test('the default policy sends everything to the club', () => {
+  const policy = readChangePolicy({});
+  assert.equal(policy.selfCancelEnabled, false);
+  assert.equal(policy.selfCancelDays, null);
+  assert.equal(policy.amendNeedsApproval, true, 'an amendment is a conversation about availability');
+
+  assert.equal(readChangePolicy({ BOOKING_SELF_CANCEL_DAYS: '7' }).selfCancelDays, 7);
+  assert.equal(readChangePolicy({ BOOKING_SELF_CANCEL_DAYS: '0' }).selfCancelDays, 0, 'zero means always');
+  assert.equal(readChangePolicy({ BOOKING_SELF_CANCEL_DAYS: '-3' }).selfCancelEnabled, false);
+  assert.equal(readChangePolicy({ BOOKING_SELF_CANCEL_DAYS: 'soon' }).selfCancelEnabled, false);
+});
+
+test('what a guest may do depends on the policy and the date', () => {
+  const strict = readChangePolicy({});
+  const lenient = readChangePolicy({ BOOKING_SELF_CANCEL_DAYS: '7' });
+  const booking = { status: 'Booked', date: '2026-06-01' };
+
+  assert.equal(describeOptions(booking, strict, '2026-05-01').autoCancel, false);
+  assert.equal(describeOptions(booking, lenient, '2026-05-01').autoCancel, true, '31 days out');
+  assert.equal(describeOptions(booking, lenient, '2026-05-28').autoCancel, false, '4 days out');
+  assert.equal(
+    describeOptions(booking, lenient, '2026-05-25').autoCancel,
+    true,
+    'exactly 7 days out is still outside the window',
+  );
+  assert.match(describeOptions(booking, lenient, '2026-05-01').reason, /takes effect immediately/);
+  assert.match(describeOptions(booking, strict, '2026-05-01').reason, /nothing changes until/);
+});
+
+test('a finished booking offers nothing, and says why', () => {
+  const policy = readChangePolicy({ BOOKING_SELF_CANCEL_DAYS: '7' });
+
+  const cancelled = describeOptions({ status: 'Cancelled', date: '2026-06-01' }, policy, '2026-05-01');
+  assert.equal(cancelled.canCancel, false);
+  assert.match(cancelled.reason, /already been cancelled/);
+
+  const played = describeOptions({ status: 'Booked', date: '2026-04-01' }, policy, '2026-05-01');
+  assert.equal(played.canAmend, false);
+  assert.match(played.reason, /already been played/);
+
+  assert.equal(describeOptions(null, policy, '2026-05-01').canCancel, false);
+  assert.deepEqual(MANAGEABLE_STATUSES, ['Inquiry', 'Requested', 'Confirmed', 'Booked']);
+});
+
+test('days until play counts from today, and goes negative afterwards', () => {
+  assert.equal(daysUntilPlay('2026-06-01', '2026-05-01'), 31);
+  assert.equal(daysUntilPlay('2026-05-01', '2026-05-01'), 0);
+  assert.equal(daysUntilPlay('2026-04-01', '2026-05-01'), -30);
+  assert.equal(daysUntilPlay('nonsense', '2026-05-01'), null);
+});
+
+test('a request has to say enough for the club to act on it', () => {
+  assert.equal(validateChangeRequest({ kind: 'cancel' }, OPEN).ok, true, 'a cancellation needs no words');
+  assert.equal(validateChangeRequest({ kind: 'amend', message: 'Move to Sunday' }, OPEN).ok, true);
+  assert.equal(
+    validateChangeRequest({ kind: 'amend', requestedDate: '2026-06-02' }, OPEN).ok,
+    true,
+    'a date is enough on its own',
+  );
+
+  assert.match(validateChangeRequest({ kind: 'amend' }, OPEN).errors[0], /what you would like to change/);
+  assert.match(validateChangeRequest({ kind: 'move' }, OPEN).errors[0], /amend or cancel/);
+  assert.match(
+    validateChangeRequest({ kind: 'amend', requestedDate: '02/06/2026', message: 'x' }, OPEN).errors[0],
+    /date is not valid/,
+  );
+  assert.match(
+    validateChangeRequest({ kind: 'amend', message: 'x', requestedPlayers: 99 }, OPEN).errors[0],
+    /Players must be/,
+  );
+  assert.match(validateChangeRequest({ kind: 'amend', message: 'x'.repeat(2001) }, OPEN).errors[0], /2000/);
+
+  // The policy's refusal is the error, so the page never offers what the API
+  // will reject.
+  const closed = { canCancel: false, canAmend: false, reason: 'This round has already been played.' };
+  assert.deepEqual(validateChangeRequest({ kind: 'cancel' }, closed).errors, [closed.reason]);
+});
+
+test('a request reads as a sentence in the club’s list', () => {
+  assert.equal(describeRequest({ kind: 'cancel', autoApplied: false }), 'Asks to cancel');
+  assert.equal(describeRequest({ kind: 'cancel', autoApplied: true }), 'Cancelled by the guest');
+  assert.equal(
+    describeRequest({ kind: 'amend', requestedDate: '2026-06-02', requestedTime: 'Morning' }),
+    'Asks to move to 2026-06-02, at Morning',
+  );
+  assert.equal(describeRequest({ kind: 'amend' }), 'Asks for a change');
+});
+
+test('a stored request serialises without surprises', () => {
+  const request = serialiseChangeRequest({
+    id: 3, booking_id: 'RDG-1', kind: 'cancel', message: null, status: 'Pending',
+    auto_applied: false, days_before_play: 31, created_at: new Date('2026-05-01T09:00:00Z'),
+    requested_date: new Date('2026-06-02T00:00:00'),
+  });
+
+  assert.equal(request.message, '', 'a null message is empty text, not "null"');
+  assert.equal(request.requestedDate, '2026-06-02');
+  assert.equal(request.open, true);
+  assert.equal(request.createdAt, '2026-05-01T09:00:00.000Z');
+  assert.equal(serialiseChangeRequest({ id: 1, status: 'Applied' }).open, false);
+});

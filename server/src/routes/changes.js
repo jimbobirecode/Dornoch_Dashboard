@@ -1,0 +1,296 @@
+/**
+ * The guest's side of their own booking, and the club's side of what they ask.
+ *
+ * The first three routes are **unauthenticated by necessity** — a guest has no
+ * account. They are safe because a manage link only ever reaches one booking,
+ * never signs anybody in, and every one of them verifies the signature before
+ * reading anything. What comes back is deliberately thin: enough for somebody
+ * to recognise their own booking, and nothing a stranger could mine.
+ *
+ * The rest are staff routes behind requireAuth, where requests are approved or
+ * declined.
+ */
+import { Router } from 'express';
+import { query } from '../db.js';
+import { requireAuth } from '../auth.js';
+import { serialiseBooking } from '../lib/bookings-domain.js';
+import { getBookingColumns, hasChangeRequests } from '../lib/schema.js';
+import {
+  describeOptions,
+  linkSecret,
+  readChangePolicy,
+  serialiseChangeRequest,
+  validateChangeRequest,
+  verifyBookingToken,
+} from '../lib/change-request-domain.js';
+import { createThrottle } from '../lib/password-reset-domain.js';
+
+const router = Router();
+
+/** An unauthenticated surface; one client should not be able to hammer it. */
+const lookupThrottle = createThrottle({ limit: 30, windowMs: 15 * 60_000 });
+const submitThrottle = createThrottle({ limit: 10, windowMs: 60 * 60_000 });
+
+/* ---------- the guest ---------- */
+
+/**
+ * The booking behind a manage link.
+ *
+ * Returns only what the holder of the link already knows, plus what they are
+ * allowed to do about it. No note, no phone number, no payment state: this
+ * answers to anyone holding the URL, including whoever the email was forwarded
+ * to.
+ */
+router.get('/booking', async (req, res, next) => {
+  try {
+    if (!lookupThrottle.check(clientIp(req))) {
+      return res.status(429).json({ error: 'Too many attempts. Try again shortly.' });
+    }
+
+    const found = await findByToken(req.query.ref, req.query.token);
+    if (!found.ok) return res.status(found.status).json({ error: found.error });
+
+    const { booking } = found;
+    const policy = readChangePolicy();
+    const options = describeOptions(booking, policy, today());
+
+    res.json({
+      booking: {
+        bookingId: booking.bookingId,
+        guestName: booking.guestName,
+        date: booking.date,
+        teeTime: booking.teeTime,
+        players: booking.players,
+        golfCourses: booking.golfCourses,
+        status: booking.status,
+        total: booking.total,
+      },
+      options,
+      pending: found.pending.map((row) => ({
+        kind: row.kind,
+        status: row.status,
+        createdAt: row.createdAt,
+      })),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Ask for a change, or cancel where policy allows it. */
+router.post('/request', async (req, res, next) => {
+  try {
+    if (!submitThrottle.check(clientIp(req))) {
+      return res.status(429).json({ error: 'Too many requests. Please ring the club.' });
+    }
+    if (!(await hasChangeRequests())) {
+      return res.status(503).json({ error: 'Online changes are not available. Please ring the club.' });
+    }
+
+    const found = await findByToken(req.body?.ref, req.body?.token);
+    if (!found.ok) return res.status(found.status).json({ error: found.error });
+
+    const { booking } = found;
+    const policy = readChangePolicy();
+    const options = describeOptions(booking, policy, today());
+
+    const check = validateChangeRequest(req.body, options);
+    if (!check.ok) return res.status(400).json({ error: check.errors.join('. ') });
+
+    // One open request at a time: a guest who clicks twice has not asked for
+    // two things, and the club should not have to work out which to answer.
+    if (found.pending.length) {
+      return res.status(409).json({
+        error: 'You already have a request with the club. They will be in touch.',
+      });
+    }
+
+    const auto = check.value.kind === 'cancel' && options.autoCancel;
+
+    const { rows } = await query(
+      `INSERT INTO public.booking_change_requests
+         (booking_id, club, kind, message, requested_date, requested_time, requested_players,
+          status, auto_applied, days_before_play, guest_email, requested_ip)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+       RETURNING *`,
+      [
+        booking.bookingId, booking.club, check.value.kind, check.value.message,
+        check.value.requestedDate, check.value.requestedTime, check.value.requestedPlayers,
+        auto ? 'Applied' : 'Pending', auto, options.daysUntilPlay,
+        booking.guestEmail, clientIp(req),
+      ],
+    );
+
+    if (auto) {
+      const columns = await getBookingColumns();
+      const note = `Cancelled by the guest online${booking.note ? `. ${booking.note}` : ''}`;
+      await query(
+        `UPDATE public.bookings SET status = 'Cancelled', note = $1
+           ${columns.has('updated_at') ? ', updated_at = NOW()' : ''}
+           ${columns.has('updated_by') ? ", updated_by = 'guest'" : ''}
+         WHERE booking_id = $2 AND club = $3`,
+        [note, booking.bookingId, booking.club],
+      );
+    }
+
+    res.status(201).json({
+      ok: true,
+      applied: auto,
+      message: auto
+        ? 'Your booking has been cancelled. A confirmation is on its way.'
+        : 'Thank you — the club has your request and will be in touch.',
+      request: serialiseChangeRequest(rows[0]),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ---------- the club ---------- */
+
+router.get('/', requireAuth, async (req, res, next) => {
+  try {
+    if (!(await hasChangeRequests())) {
+      return res.json({ available: false, reason: 'Run migration_add_change_requests.sql', requests: [] });
+    }
+
+    const { rows } = await query(
+      `SELECT r.*, b.date AS play_date, b.tee_time, b.players AS booked_players, b.guest_name
+         FROM public.booking_change_requests r
+         LEFT JOIN public.bookings b ON b.booking_id = r.booking_id AND b.club = r.club
+        WHERE r.club = $1
+        ORDER BY (r.status = 'Pending') DESC, r.created_at DESC
+        LIMIT 200`,
+      [req.user.customerId],
+    );
+
+    res.json({
+      available: true,
+      policy: readChangePolicy(),
+      requests: rows.map((row) => ({
+        ...serialiseChangeRequest(row),
+        playDate: row.play_date ? new Date(row.play_date).toISOString().slice(0, 10) : null,
+        teeTime: row.tee_time ?? null,
+        bookedPlayers: row.booked_players ?? null,
+        guestName: row.guest_name ?? '',
+      })),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * Approve or decline.
+ *
+ * Approving a cancellation cancels the booking. Approving an *amendment* does
+ * not rewrite the tee sheet — what the guest asked for may not be available,
+ * and picking a slot for them is the club's job. It marks the request answered
+ * and leaves the booking to be edited on the bookings page, which is where the
+ * availability actually is.
+ */
+router.post('/:id/:decision', requireAuth, async (req, res, next) => {
+  try {
+    const decision = req.params.decision;
+    if (!['approve', 'decline'].includes(decision)) {
+      return res.status(400).json({ error: 'Decision must be approve or decline' });
+    }
+
+    const { rows: found } = await query(
+      'SELECT * FROM public.booking_change_requests WHERE id = $1 AND club = $2',
+      [Number(req.params.id), req.user.customerId],
+    );
+    const request = found[0];
+    if (!request) return res.status(404).json({ error: 'No such request' });
+    if (request.status !== 'Pending') {
+      return res.status(409).json({ error: `That request was already ${request.status.toLowerCase()}` });
+    }
+
+    const approving = decision === 'approve';
+    const cancelling = approving && request.kind === 'cancel';
+
+    if (cancelling) {
+      const columns = await getBookingColumns();
+      await query(
+        `UPDATE public.bookings SET status = 'Cancelled'
+           ${columns.has('updated_at') ? ', updated_at = NOW()' : ''}
+           ${columns.has('updated_by') ? ', updated_by = $3' : ''}
+         WHERE booking_id = $1 AND club = $2`,
+        columns.has('updated_by')
+          ? [request.booking_id, req.user.customerId, req.user.username]
+          : [request.booking_id, req.user.customerId],
+      );
+    }
+
+    const { rows } = await query(
+      `UPDATE public.booking_change_requests
+          SET status = $1, resolved_at = NOW(), resolved_by = $2, resolution_note = $3
+        WHERE id = $4 AND club = $5
+        RETURNING *`,
+      [
+        cancelling ? 'Applied' : approving ? 'Approved' : 'Declined',
+        req.user.username,
+        String(req.body?.note ?? '').trim(),
+        request.id,
+        req.user.customerId,
+      ],
+    );
+
+    res.json({
+      request: serialiseChangeRequest(rows[0]),
+      bookingCancelled: cancelling,
+      // An approved amendment is an instruction to a person, not a state change.
+      needsEditing: approving && request.kind === 'amend',
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ---------- helpers ---------- */
+
+/**
+ * The booking a signed link points at.
+ *
+ * Every failure answers the same way — an unreadable link is not told apart
+ * from an unknown reference, or the URL becomes a way to test which booking
+ * references exist.
+ */
+async function findByToken(ref, token) {
+  const bookingId = String(ref ?? '').trim();
+  const secret = linkSecret();
+  const refused = { ok: false, status: 404, error: 'That link is not valid. Please ring the club.' };
+
+  if (!bookingId || !secret) return refused;
+
+  const columns = await getBookingColumns();
+  const { rows } = await query(
+    `SELECT ${columns.selectList} FROM public.bookings WHERE booking_id = $1`,
+    [bookingId],
+  );
+  if (!rows.length) return refused;
+
+  const booking = serialiseBooking(rows[0]);
+  if (!verifyBookingToken(bookingId, token, secret, booking.club ?? '')) return refused;
+
+  const pending = (await hasChangeRequests())
+    ? (await query(
+        `SELECT * FROM public.booking_change_requests
+          WHERE booking_id = $1 AND status = 'Pending'`,
+        [bookingId],
+      )).rows.map(serialiseChangeRequest)
+    : [];
+
+  return { ok: true, booking, pending };
+}
+
+function today() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date());
+}
+
+function clientIp(req) {
+  const forwarded = String(req.headers['x-forwarded-for'] ?? '').split(',')[0].trim();
+  return forwarded || req.ip || req.socket?.remoteAddress || 'unknown';
+}
+
+export default router;

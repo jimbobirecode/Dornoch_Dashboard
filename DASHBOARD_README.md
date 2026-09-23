@@ -175,6 +175,39 @@ never saw; leaving it out of revenue would understate what the course actually
 took. The KPI row reports `enquiries` and `imported` separately so the split is
 visible rather than implied.
 
+## Guest requests
+
+A guest follows a link in their confirmation email, sees their booking, and
+asks to change or cancel it.
+
+```bash
+psql "$DATABASE_URL" -f migration_add_change_requests.sql
+```
+
+**The club decides, not the software.** By default nothing moves until somebody
+approves it, because a tee time is scarce and usually inside a charging window.
+Set `BOOKING_SELF_CANCEL_DAYS=7` and a guest cancelling a week or more out
+takes effect immediately, while anything closer still waits. Amendments *never*
+apply themselves — "could we move to Sunday" is a question about availability,
+not a state change — so approving one marks the request answered and leaves the
+booking to be edited where the tee sheet is.
+
+Whichever applies is said to the guest in words **before** they press anything.
+Nobody should be surprised by what a button did to their tee time.
+
+**The link is stateless**: the booking reference plus an HMAC of it, signed with
+`BOOKING_LINK_SECRET` (or `JWT_SECRET`). Nothing is stored, so there is no token
+table to leak — the trade is that a single link cannot be revoked on its own,
+only all of them at once by rotating the secret. It reaches exactly one booking
+and never signs anybody in.
+
+The guest page returns only what the holder of the link already knows — date,
+time, players, course, total — and never the note, the phone number or the
+payment state, because it answers to whoever the email was forwarded to. Every
+bad link gets the same reply, so the URL cannot be used to discover which
+booking references exist. One open request at a time per booking, and both
+unauthenticated endpoints are throttled.
+
 ## Waitlist
 
 Parties waiting for a time the club could not give them, and — the point of the

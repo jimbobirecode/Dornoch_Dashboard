@@ -15,6 +15,7 @@ import reminderRoutes from './routes/reminders.js';
 import userRoutes from './routes/users.js';
 import waitlistRoutes from './routes/waitlist.js';
 import importRoutes from './routes/imports.js';
+import changeRoutes from './routes/changes.js';
 import { pool } from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -50,6 +51,7 @@ app.use('/api/reminders', reminderRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/waitlist', waitlistRoutes);
 app.use('/api/imports', importRoutes);
+app.use('/api/changes', changeRoutes);
 
 const distDir = path.resolve(__dirname, '../../web/dist');
 if (fs.existsSync(distDir)) {

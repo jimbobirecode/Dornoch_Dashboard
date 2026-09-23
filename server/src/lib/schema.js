@@ -244,6 +244,22 @@ const WAITLIST_COLUMNS = [
   'converted_booking_id', 'converted_at',
 ];
 
+const CHANGE_REQUEST_COLUMNS = [
+  'id', 'booking_id', 'club', 'kind', 'message', 'requested_date', 'requested_time',
+  'requested_players', 'status', 'auto_applied', 'days_before_play', 'resolved_at',
+  'resolved_by', 'resolution_note', 'guest_email', 'requested_ip', 'created_at',
+];
+
+export function getChangeRequestColumns() {
+  return cached('booking_change_requests', CHANGE_REQUEST_COLUMNS);
+}
+
+/** Whether guests can ask for changes online. */
+export async function hasChangeRequests() {
+  const columns = await getChangeRequestColumns();
+  return columns.has('booking_id') && columns.has('kind');
+}
+
 export function getWaitlistColumns() {
   return cached('waitlist', WAITLIST_COLUMNS);
 }
