@@ -65,6 +65,16 @@ export const api = {
   deleteUser: (id) => request(`/users/${id}`, { method: 'DELETE' }),
   inviteUser: (id) => request(`/users/${id}/invite`, { method: 'POST' }),
 
+  // The waitlist, and the conversion report that hangs off it.
+  waitlist: () => request('/waitlist'),
+  addWaitlistEntry: (entry) => request('/waitlist', { method: 'POST', body: entry }),
+  updateWaitlistEntry: (waitlistId, patch) =>
+    request(`/waitlist/${encodeURIComponent(waitlistId)}`, { method: 'PATCH', body: patch }),
+  convertWaitlistEntry: (waitlistId, booking) =>
+    request(`/waitlist/${encodeURIComponent(waitlistId)}/convert`, { method: 'POST', body: booking }),
+  deleteWaitlistEntry: (waitlistId) =>
+    request(`/waitlist/${encodeURIComponent(waitlistId)}`, { method: 'DELETE' }),
+
   bookings: () => request('/bookings'),
   setStatus: (bookingId, status) =>
     request(`/bookings/${encodeURIComponent(bookingId)}/status`, {
