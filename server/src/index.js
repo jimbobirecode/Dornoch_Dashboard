@@ -14,13 +14,17 @@ import operatorRoutes from './routes/operators.js';
 import reminderRoutes from './routes/reminders.js';
 import userRoutes from './routes/users.js';
 import waitlistRoutes from './routes/waitlist.js';
+import importRoutes from './routes/imports.js';
+import changeRoutes from './routes/changes.js';
 import { pool } from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = Number(process.env.PORT ?? 3001);
 
-app.use(express.json({ limit: '1mb' }));
+// A tee sheet upload arrives base64-encoded in the body, which is about a
+// third larger than the file; 12mb carries the importer's 8MB ceiling.
+app.use(express.json({ limit: '12mb' }));
 app.use(cookieParser());
 
 // The Vite dev server runs on its own origin; in production the API and the
@@ -46,6 +50,8 @@ app.use('/api/operators', operatorRoutes);
 app.use('/api/reminders', reminderRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/waitlist', waitlistRoutes);
+app.use('/api/imports', importRoutes);
+app.use('/api/changes', changeRoutes);
 
 const distDir = path.resolve(__dirname, '../../web/dist');
 if (fs.existsSync(distDir)) {

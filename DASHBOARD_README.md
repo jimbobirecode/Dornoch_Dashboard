@@ -132,6 +132,82 @@ Beyond the Streamlit dashboard it adds the trade side of the book — tour
 operator accounts, their credit terms, where the money sits, and the two
 reminder campaigns that chase it. See **Tour Operators** below.
 
+## Upload tee sheet
+
+Bookings made in the club's own system, brought in so marketing and the
+reports can see them.
+
+```bash
+psql "$DATABASE_URL" -f migration_add_booking_source.sql
+```
+
+Upload a CSV or Excel export. Column headers are matched against a list of
+aliases, so `Confirmation Number`, `Pax`, `Green Fees` and `Playing Date` all
+land where they should, and any header it could not place is reported rather
+than silently dropped. Dates are read in ISO, slash, dotted and named-month
+forms; times in 24-hour, 12-hour or Excel's fractional-day. Blank rows are
+skipped, and a row whose date cannot be read is refused with its line number
+instead of being guessed at.
+
+It works in two steps on purpose. **Check the file** reads it and reports what
+it found without writing anything; **Import** then writes. The failure worth
+protecting against is silent: a sheet whose `03/04` means 4 March imports
+perfectly and is wrong in every row, so the preview shows the dates it read and
+which reading it used. Day-first is the default and can be switched.
+
+Re-uploading the same file is safe. A row is a duplicate if its reference is
+already here, or if the same guest already has a booking at the same time on
+the same day — including a row a file repeats within itself. An upload can also
+be undone as a batch, which removes only the rows nobody has edited since.
+
+### Imported bookings and the reports
+
+Everything uploaded is marked `source = 'imported'`, and that distinction runs
+through the analytics:
+
+| Counts imported bookings | Does not |
+|---|---|
+| Revenue, players, party size, course mix, busiest days, lodging, payments | Conversion funnel, conversion and loss rates, booking request utilisation, time to answer |
+
+The rule is that an uploaded booking is **real play but was never an enquiry**.
+Counting it in the funnel would credit TeeMail with converting something it
+never saw; leaving it out of revenue would understate what the course actually
+took. The KPI row reports `enquiries` and `imported` separately so the split is
+visible rather than implied.
+
+## Guest requests
+
+A guest follows a link in their confirmation email, sees their booking, and
+asks to change or cancel it.
+
+```bash
+psql "$DATABASE_URL" -f migration_add_change_requests.sql
+```
+
+**The club decides, not the software.** By default nothing moves until somebody
+approves it, because a tee time is scarce and usually inside a charging window.
+Set `BOOKING_SELF_CANCEL_DAYS=7` and a guest cancelling a week or more out
+takes effect immediately, while anything closer still waits. Amendments *never*
+apply themselves — "could we move to Sunday" is a question about availability,
+not a state change — so approving one marks the request answered and leaves the
+booking to be edited where the tee sheet is.
+
+Whichever applies is said to the guest in words **before** they press anything.
+Nobody should be surprised by what a button did to their tee time.
+
+**The link is stateless**: the booking reference plus an HMAC of it, signed with
+`BOOKING_LINK_SECRET` (or `JWT_SECRET`). Nothing is stored, so there is no token
+table to leak — the trade is that a single link cannot be revoked on its own,
+only all of them at once by rotating the secret. It reaches exactly one booking
+and never signs anybody in.
+
+The guest page returns only what the holder of the link already knows — date,
+time, players, course, total — and never the note, the phone number or the
+payment state, because it answers to whoever the email was forwarded to. Every
+bad link gets the same reply, so the URL cannot be used to discover which
+booking references exist. One open request at a time per booking, and both
+unauthenticated endpoints are throttled.
+
 ## Waitlist
 
 Parties waiting for a time the club could not give them, and — the point of the
@@ -170,6 +246,24 @@ Two rules keep the numbers honest:
 booking it converted to, so the API refuses it on the ordinary status edit and
 directs the caller at the convert action. A converted entry cannot be deleted
 either: it is the only record of that conversion.
+
+### Conversions made somewhere else
+
+A time found over the phone becomes a booking with nothing tying it back to the
+list, so the rate under-reports by exactly that much. **Possible conversions**
+finds them: people on the list who already have a booking at this club, on or
+within three days of the date they asked for, made after they joined the list.
+
+They are proposed, never applied — two people can share an inbox, and a guest
+can wait for one date while booking another under their own steam. Each row
+says *why* it matched and flags a differing party size, which is the usual
+reason a match is wrong. Confirming one attaches the existing booking; it
+creates nothing.
+
+Cancelled bookings, bookings that predate the entry, and bookings already
+recorded as another entry's conversion are never offered — one booking cannot
+be two conversions without counting the same play twice in both the rate and
+the revenue.
 
 ## Guest Emails
 

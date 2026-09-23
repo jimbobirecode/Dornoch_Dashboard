@@ -72,8 +72,26 @@ export const api = {
     request(`/waitlist/${encodeURIComponent(waitlistId)}`, { method: 'PATCH', body: patch }),
   convertWaitlistEntry: (waitlistId, booking) =>
     request(`/waitlist/${encodeURIComponent(waitlistId)}/convert`, { method: 'POST', body: booking }),
+  linkWaitlistEntry: (waitlistId, bookingId) =>
+    request(`/waitlist/${encodeURIComponent(waitlistId)}/link`, { method: 'POST', body: { bookingId } }),
   deleteWaitlistEntry: (waitlistId) =>
     request(`/waitlist/${encodeURIComponent(waitlistId)}`, { method: 'DELETE' }),
+
+  // Uploading the club's own tee sheet.
+  importConfig: () => request('/imports/config'),
+  previewImport: (file) => request('/imports/preview', { method: 'POST', body: file }),
+  commitImport: (file) => request('/imports/commit', { method: 'POST', body: file }),
+  undoImport: (batchId) => request(`/imports/${encodeURIComponent(batchId)}`, { method: 'DELETE' }),
+
+  // A guest managing their own booking. Signed out — the link is the credential.
+  manageBooking: (ref, token) =>
+    request(`/changes/booking${queryString({ ref, token })}`),
+  requestBookingChange: (body) => request('/changes/request', { method: 'POST', body }),
+
+  // The club's side of those requests.
+  changeRequests: () => request('/changes'),
+  resolveChangeRequest: (id, decision, note) =>
+    request(`/changes/${id}/${decision}`, { method: 'POST', body: { note } }),
 
   bookings: () => request('/bookings'),
   setStatus: (bookingId, status) =>

@@ -59,6 +59,11 @@ export const OPTIONAL_COLUMNS = [
   'balance_due_date',
   'operator_status_email_sent_at',
   'operator_payment_email_sent_at',
+
+  // migration_add_booking_source.sql
+  'source',
+  'import_batch',
+  'imported_at',
 ];
 
 /** Every column of `tour_operators`; the table itself may not exist. */
@@ -198,6 +203,18 @@ export async function hasOperatorsTable() {
   return columns.has('id') && columns.has('name');
 }
 
+/**
+ * Whether a booking can say where it came from.
+ *
+ * Without it an uploaded tee sheet would be indistinguishable from an enquiry
+ * TeeMail converted, and the conversion reports would overstate by the size of
+ * the upload — so the importer refuses to run rather than corrupt them.
+ */
+export async function hasBookingSource() {
+  const columns = await getBookingColumns();
+  return columns.has('source') && columns.has('import_batch');
+}
+
 /** Whether a booking can carry an operator and its payment state. */
 export async function hasOperatorBookingColumns() {
   const columns = await getBookingColumns();
@@ -226,6 +243,22 @@ const WAITLIST_COLUMNS = [
   // migration_add_waitlist_conversion.sql
   'converted_booking_id', 'converted_at',
 ];
+
+const CHANGE_REQUEST_COLUMNS = [
+  'id', 'booking_id', 'club', 'kind', 'message', 'requested_date', 'requested_time',
+  'requested_players', 'status', 'auto_applied', 'days_before_play', 'resolved_at',
+  'resolved_by', 'resolution_note', 'guest_email', 'requested_ip', 'created_at',
+];
+
+export function getChangeRequestColumns() {
+  return cached('booking_change_requests', CHANGE_REQUEST_COLUMNS);
+}
+
+/** Whether guests can ask for changes online. */
+export async function hasChangeRequests() {
+  const columns = await getChangeRequestColumns();
+  return columns.has('booking_id') && columns.has('kind');
+}
 
 export function getWaitlistColumns() {
   return cached('waitlist', WAITLIST_COLUMNS);
