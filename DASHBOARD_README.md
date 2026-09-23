@@ -171,6 +171,24 @@ booking it converted to, so the API refuses it on the ordinary status edit and
 directs the caller at the convert action. A converted entry cannot be deleted
 either: it is the only record of that conversion.
 
+### Conversions made somewhere else
+
+A time found over the phone becomes a booking with nothing tying it back to the
+list, so the rate under-reports by exactly that much. **Possible conversions**
+finds them: people on the list who already have a booking at this club, on or
+within three days of the date they asked for, made after they joined the list.
+
+They are proposed, never applied — two people can share an inbox, and a guest
+can wait for one date while booking another under their own steam. Each row
+says *why* it matched and flags a differing party size, which is the usual
+reason a match is wrong. Confirming one attaches the existing booking; it
+creates nothing.
+
+Cancelled bookings, bookings that predate the entry, and bookings already
+recorded as another entry's conversion are never offered — one booking cannot
+be two conversions without counting the same play twice in both the rate and
+the revenue.
+
 ## Guest Emails
 
 The two customer-journey campaigns from `modules/customer_journey/emails.py`,

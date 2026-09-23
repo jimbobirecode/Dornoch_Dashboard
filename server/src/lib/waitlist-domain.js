@@ -12,6 +12,7 @@
  * counting it as a failure makes a healthy list look like a broken one.
  */
 import { COMMITTED_STATUSES } from './operators-domain.js';
+import { TERMINAL_STATUSES } from './bookings-domain.js';
 
 /** The states the Streamlit waitlist used, kept so old rows still read. */
 export const WAITLIST_STATUSES = ['Waiting', 'Notified', 'Converted', 'Cancelled'];
@@ -20,6 +21,7 @@ export const WAITLIST_STATUSES = ['Waiting', 'Notified', 'Converted', 'Cancelled
 export const OPEN_STATUSES = ['Waiting', 'Notified'];
 
 const COMMITTED = new Set(COMMITTED_STATUSES);
+const TERMINAL = new Set(TERMINAL_STATUSES);
 
 export function normaliseWaitlistStatus(status) {
   const text = String(status ?? '').trim();
@@ -176,6 +178,108 @@ export function buildWaitlistDemand(entries, limit = 8) {
     }))
     .sort((a, b) => b.players - a.players || b.entries - a.entries)
     .slice(0, limit);
+}
+
+/**
+ * Waitlist entries that look like they already became a booking.
+ *
+ * Conversions only get a link when staff use the convert action. A time found
+ * over the phone, or a party who rang the pro shop themselves, becomes a
+ * booking with nothing tying it back — and the conversion rate under-reports
+ * by exactly that much. This proposes the links so somebody can confirm them,
+ * the same way unrecognised tour operators are proposed rather than assumed.
+ *
+ * Nothing here writes anything. A suggestion is evidence, not a conclusion:
+ * two people can share an inbox, and a guest can be on the list for one date
+ * while booking another under their own steam.
+ */
+export function suggestConversions(entries, bookings, { windowDays = 3 } = {}) {
+  const open = entries.filter((entry) => entry.open && entry.guestEmail);
+  if (!open.length) return [];
+
+  // A booking already claimed by another entry is not evidence for this one.
+  const claimed = new Set(
+    entries.map((entry) => entry.convertedBookingId).filter(Boolean),
+  );
+
+  const byEmail = new Map();
+  for (const booking of bookings) {
+    const email = String(booking.guestEmail ?? '').trim().toLowerCase();
+    if (!email || claimed.has(booking.bookingId)) continue;
+    if (TERMINAL.has(booking.status)) continue; // a cancelled booking converted nobody
+    if (!byEmail.has(email)) byEmail.set(email, []);
+    byEmail.get(email).push(booking);
+  }
+
+  const suggestions = [];
+
+  for (const entry of open) {
+    const candidates = byEmail.get(entry.guestEmail) ?? [];
+
+    for (const booking of candidates) {
+      const gap = dayGap(entry.requestedDate, booking.date);
+      if (gap === null) continue;
+
+      // Only a booking made *after* the entry joined the list can be the thing
+      // that entry turned into; an earlier one is a different trip.
+      if (bookedBefore(entry, booking)) continue;
+
+      const confidence = gap === 0
+        ? 'exact'
+        : Math.abs(gap) <= windowDays
+          ? 'likely'
+          : null;
+      if (!confidence) continue;
+
+      suggestions.push({
+        key: `${entry.waitlistId}|${booking.bookingId}`,
+        waitlistId: entry.waitlistId,
+        bookingId: booking.bookingId,
+        guestEmail: entry.guestEmail,
+        guestName: entry.guestName || booking.guestName || '',
+        confidence,
+        // Said in words, because whoever confirms this is deciding whether to
+        // believe it and a label alone does not tell them why.
+        because: gap === 0
+          ? `Booked ${booking.date}, the date they asked for`
+          : `Booked ${booking.date}, ${Math.abs(gap)} day${Math.abs(gap) === 1 ? '' : 's'} ${gap > 0 ? 'after' : 'before'} the date they asked for`,
+        requestedDate: entry.requestedDate,
+        bookingDate: booking.date,
+        dayGap: gap,
+        waitlistPlayers: num(entry.players),
+        bookingPlayers: num(booking.players),
+        // A different party size is the most common reason a match is wrong.
+        playersMatch: num(entry.players) === num(booking.players),
+        bookingStatus: booking.status,
+        total: round2(num(booking.total)),
+      });
+    }
+  }
+
+  const order = { exact: 0, likely: 1 };
+  return suggestions.sort(
+    (a, b) =>
+      order[a.confidence] - order[b.confidence] ||
+      Number(b.playersMatch) - Number(a.playersMatch) ||
+      Math.abs(a.dayGap) - Math.abs(b.dayGap),
+  );
+}
+
+/** Whole days from the requested date to the booked one; null if either is missing. */
+function dayGap(requestedDate, bookingDate) {
+  const from = Date.parse(`${requestedDate}T00:00:00Z`);
+  const to = Date.parse(`${bookingDate}T00:00:00Z`);
+  if (Number.isNaN(from) || Number.isNaN(to)) return null;
+  return Math.round((to - from) / 86_400_000);
+}
+
+/** Whether the booking predates the waitlist entry, so cannot have come from it. */
+function bookedBefore(entry, booking) {
+  const joined = Date.parse(entry.createdAt ?? '');
+  const made = Date.parse(booking.timestamp ?? '');
+  if (Number.isNaN(joined) || Number.isNaN(made)) return false;
+  // A day's slack: a party can ring the same morning they are added.
+  return made < joined - 86_400_000;
 }
 
 /** What a new entry has to carry. */

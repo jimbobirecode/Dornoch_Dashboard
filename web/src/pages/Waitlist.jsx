@@ -121,6 +121,19 @@ export default function Waitlist() {
         onAdd={(entry) => act(() => api.addWaitlistEntry(entry), 'Added to the waitlist')}
       />
 
+      {data.suggestions?.length > 0 && (
+        <Suggestions
+          rows={data.suggestions}
+          busy={busy}
+          onLink={(row) =>
+            act(
+              () => api.linkWaitlistEntry(row.waitlistId, row.bookingId),
+              `${row.waitlistId} recorded as converting to ${row.bookingId}`,
+            )
+          }
+        />
+      )}
+
       {data.demand.length > 0 && <Demand rows={data.demand} />}
 
       <EntryTable
@@ -199,6 +212,77 @@ function AddEntry({ onAdd, disabled }) {
         <button type="submit" className="btn-primary" disabled={disabled}>Add</button>
       </div>
     </form>
+  );
+}
+
+/**
+ * Conversions that happened somewhere other than this page.
+ *
+ * A time found over the phone becomes a booking with nothing tying it back to
+ * the list, so the conversion rate under-reports by exactly that much. These
+ * are proposed, never applied: two people can share an inbox, and a guest can
+ * wait for one date while booking another under their own steam. The evidence
+ * is spelled out so whoever confirms is deciding rather than trusting.
+ */
+function Suggestions({ rows, busy, onLink }) {
+  return (
+    <div className="card stack" style={{ gap: '0.75rem' }}>
+      <div>
+        <h3>Possible conversions ({rows.length})</h3>
+        <p className="muted" style={{ margin: '0.15rem 0 0', fontSize: '0.8125rem' }}>
+          People on the list who already have a booking. Confirm one and it counts toward
+          conversion — nothing is linked until you say so.
+        </p>
+      </div>
+      <div className="table-wrap">
+        <table className="data">
+          <thead>
+            <tr>
+              <th>Guest</th>
+              <th>Waiting for</th>
+              <th>Booking</th>
+              <th>Why it matches</th>
+              <th className="num">Players</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.key}>
+                <td>
+                  <div>{row.guestName || '—'}</div>
+                  <div className="muted" style={{ fontSize: '0.75rem' }}>{row.guestEmail}</div>
+                </td>
+                <td>{formatDate(row.requestedDate)}</td>
+                <td className="mono">
+                  {row.bookingId}
+                  <div className="muted" style={{ fontSize: '0.75rem' }}>
+                    {row.bookingStatus} · {formatCurrency(row.total)}
+                  </div>
+                </td>
+                <td>
+                  {row.because}
+                  {row.confidence === 'exact' && (
+                    <div className="muted" style={{ fontSize: '0.75rem' }}>Exact date match</div>
+                  )}
+                </td>
+                <td className="num">
+                  {row.waitlistPlayers} → {row.bookingPlayers}
+                  {!row.playersMatch && (
+                    <div className="muted" style={{ fontSize: '0.75rem' }}>Party size differs</div>
+                  )}
+                </td>
+                <td className="num">
+                  <button type="button" className="btn-sm" disabled={busy} onClick={() => onLink(row)}>
+                    This is the one
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 

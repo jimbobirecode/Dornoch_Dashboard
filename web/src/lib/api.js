@@ -72,6 +72,8 @@ export const api = {
     request(`/waitlist/${encodeURIComponent(waitlistId)}`, { method: 'PATCH', body: patch }),
   convertWaitlistEntry: (waitlistId, booking) =>
     request(`/waitlist/${encodeURIComponent(waitlistId)}/convert`, { method: 'POST', body: booking }),
+  linkWaitlistEntry: (waitlistId, bookingId) =>
+    request(`/waitlist/${encodeURIComponent(waitlistId)}/link`, { method: 'POST', body: { bookingId } }),
   deleteWaitlistEntry: (waitlistId) =>
     request(`/waitlist/${encodeURIComponent(waitlistId)}`, { method: 'DELETE' }),
 

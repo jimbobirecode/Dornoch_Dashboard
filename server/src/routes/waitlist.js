@@ -18,6 +18,7 @@ import {
   mintWaitlistId,
   normaliseWaitlistStatus,
   serialiseWaitlistEntry,
+  suggestConversions,
   validateWaitlistEntry,
 } from '../lib/waitlist-domain.js';
 
@@ -37,6 +38,12 @@ router.get('/', async (req, res, next) => {
 
     const entries = await loadEntries(req.user.customerId);
     const bookings = await loadConvertedBookings(entries, req.user.customerId);
+    // Conversions made outside the dashboard leave no link, so they are found
+    // by looking rather than reported by the act that made them.
+    const suggestions = suggestConversions(
+      entries,
+      await loadCandidateBookings(entries, req.user.customerId),
+    );
 
     res.json({
       available: true,
@@ -44,6 +51,7 @@ router.get('/', async (req, res, next) => {
       statuses: WAITLIST_STATUSES,
       conversion: buildWaitlistConversion(entries, bookings),
       demand: buildWaitlistDemand(entries),
+      suggestions,
     });
   } catch (err) {
     next(err);
@@ -199,6 +207,62 @@ router.post('/:waitlistId/convert', async (req, res, next) => {
   }
 });
 
+/**
+ * Attach an existing booking to an entry — confirming a conversion that
+ * happened outside the dashboard.
+ *
+ * Unlike the convert action this creates nothing: the booking is already
+ * there, and somebody has decided it is the one this entry became.
+ */
+router.post('/:waitlistId/link', async (req, res, next) => {
+  try {
+    const entry = await findEntry(req.params.waitlistId, req.user.customerId);
+    if (!entry) return res.status(404).json({ error: 'No such waitlist entry' });
+    if (entry.converted_booking_id) {
+      return res.status(409).json({
+        error: `That entry already became booking ${entry.converted_booking_id}`,
+      });
+    }
+
+    const bookingId = String(req.body?.bookingId ?? '').trim();
+    if (!bookingId) return res.status(400).json({ error: 'A booking reference is required' });
+
+    const columns = await getBookingColumns();
+    const { rows: bookingRows } = await query(
+      `SELECT ${columns.selectList} FROM public.bookings WHERE booking_id = $1 AND club = $2`,
+      [bookingId, req.user.customerId],
+    );
+    if (!bookingRows.length) return res.status(404).json({ error: 'No such booking at this club' });
+
+    // One booking cannot be two entries' conversion, or the same play would be
+    // counted twice in the rate and twice in the revenue.
+    const { rows: taken } = await query(
+      'SELECT waitlist_id FROM public.waitlist WHERE converted_booking_id = $1 AND club = $2',
+      [bookingId, req.user.customerId],
+    );
+    if (taken.length) {
+      return res.status(409).json({
+        error: `Booking ${bookingId} is already recorded as the conversion of ${taken[0].waitlist_id}`,
+      });
+    }
+
+    const { rows } = await query(
+      `UPDATE public.waitlist
+          SET status = 'Converted', converted_booking_id = $1, converted_at = NOW(), updated_at = NOW()
+        WHERE waitlist_id = $2 AND club = $3
+        RETURNING *`,
+      [bookingId, entry.waitlist_id, req.user.customerId],
+    );
+
+    res.json({
+      entry: serialiseWaitlistEntry(rows[0]),
+      booking: serialiseBooking(bookingRows[0]),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.delete('/:waitlistId', async (req, res, next) => {
   try {
     const entry = await findEntry(req.params.waitlistId, req.user.customerId);
@@ -239,6 +303,30 @@ async function loadConvertedBookings(entries, club) {
     `SELECT ${columns.selectList} FROM public.bookings
       WHERE club = $1 AND booking_id = ANY($2::text[])`,
     [club, ids],
+  );
+  return rows.map(serialiseBooking);
+}
+
+/**
+ * Bookings that could be an unrecorded conversion: this club's, for a guest
+ * who is on the list, around the dates they asked for. Narrowed in SQL so a
+ * club with years of history does not load all of it to match a dozen entries.
+ */
+async function loadCandidateBookings(entries, club) {
+  const open = entries.filter((entry) => entry.open && entry.guestEmail);
+  if (!open.length) return [];
+
+  const emails = [...new Set(open.map((entry) => entry.guestEmail))];
+  const dates = open.map((entry) => entry.requestedDate).filter(Boolean).sort();
+  if (!dates.length) return [];
+
+  const columns = await getBookingColumns();
+  const { rows } = await query(
+    `SELECT ${columns.selectList} FROM public.bookings
+      WHERE club = $1
+        AND LOWER(guest_email) = ANY($2::text[])
+        AND date BETWEEN $3::date - 7 AND $4::date + 7`,
+    [club, emails, dates[0], dates.at(-1)],
   );
   return rows.map(serialiseBooking);
 }
