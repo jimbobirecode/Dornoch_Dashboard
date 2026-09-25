@@ -8,7 +8,8 @@
  */
 import { INK_MUTED, OVERDUE, PAYMENT_COLORS } from './palette.js';
 
-export const PAYMENT_STATUSES = ['Unpaid', 'Deposit paid', 'Paid', 'Refunded', 'Written off'];
+/** 'Pending': a Stripe payment link has been emailed and not yet paid. */
+export const PAYMENT_STATUSES = ['Unpaid', 'Pending', 'Deposit paid', 'Paid', 'Refunded', 'Written off'];
 
 /** Neither owes money nor counts toward an operator's exposure. */
 export const CLOSED_PAYMENT_STATUSES = ['Refunded', 'Written off'];
@@ -49,5 +50,11 @@ export function describeStage(payment) {
  * the club's own record of what it agreed is not the dashboard's to overwrite.
  */
 export function statusDisagrees(payment) {
-  return Boolean(payment) && !payment.settled && payment.status !== payment.derivedStatus;
+  // Pending is a state of the link, not of the money: it is expected to disagree.
+  return (
+    Boolean(payment) &&
+    !payment.settled &&
+    payment.status !== 'Pending' &&
+    payment.status !== payment.derivedStatus
+  );
 }

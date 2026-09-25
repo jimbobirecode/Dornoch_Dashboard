@@ -1,6 +1,6 @@
 /**
- * The slice of the SendGrid v3 mail API this dashboard uses: one dynamic
- * template, one recipient, no attachments.
+ * The slice of the SendGrid v3 mail API this dashboard uses: one recipient, no
+ * attachments, rendered either from a dynamic template or from HTML we wrote.
  *
  * It is a plain `fetch` rather than the official SDK — that is one dependency
  * for a single POST, and Node 20 (the floor in `package.json`) has fetch built
@@ -24,11 +24,38 @@ export async function sendTemplateEmail({
   data,
   fetchImpl = fetch,
 }) {
-  const body = {
+  return post(apiKey, toEmail, fetchImpl, {
     from: { email: fromEmail, name: fromName },
     personalizations: [{ to: [{ email: toEmail }], dynamic_template_data: data }],
     template_id: templateId,
-  };
+  });
+}
+
+/** Send one email whose subject and body we wrote ourselves, for when no template is set. */
+export async function sendHtmlEmail({
+  apiKey,
+  fromEmail,
+  fromName,
+  toEmail,
+  replyTo,
+  subject,
+  text,
+  html,
+  fetchImpl = fetch,
+}) {
+  return post(apiKey, toEmail, fetchImpl, {
+    from: { email: fromEmail, name: fromName },
+    ...(replyTo ? { reply_to: { email: replyTo } } : {}),
+    personalizations: [{ to: [{ email: toEmail }] }],
+    subject,
+    content: [
+      { type: 'text/plain', value: text },
+      { type: 'text/html', value: html },
+    ],
+  });
+}
+
+async function post(apiKey, toEmail, fetchImpl, body) {
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);

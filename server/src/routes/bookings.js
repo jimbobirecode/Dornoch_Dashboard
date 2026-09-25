@@ -79,6 +79,25 @@ async function loadOperatorsIfPresent(club) {
 }
 
 /**
+ * One booking with its account and payment state, as the list serves it.
+ *
+ * Re-identified rather than read off tour_operator_id: most trade bookings
+ * are matched on their sending domain and were never assigned an id, and a
+ * row that came back from a save without its account would show the drawer
+ * the wrong terms — and so the wrong due date.
+ */
+export async function withAccount(booking, club) {
+  const operators = await loadOperatorsIfPresent(club);
+  const { operator } = identify(booking, buildOperatorIndex(operators));
+  return {
+    ...booking,
+    operatorId: operator?.id ?? null,
+    operatorName: operator?.name ?? null,
+    payment: paymentState(booking, operator, { today: todayInClubZone() }),
+  };
+}
+
+/**
  * Every booking with the trade account it was identified as belonging to, and
  * what it owes under that account's terms.
  *
@@ -202,23 +221,7 @@ router.patch('/:bookingId/payment', async (req, res, next) => {
 
     if (!rows[0]) return res.status(404).json({ error: 'Booking not found' });
 
-    // Re-identified rather than read off tour_operator_id: most trade bookings
-    // are matched on their sending domain and were never assigned an id, and a
-    // row that came back from a save without its account would show the drawer
-    // the wrong terms — and so the wrong due date.
-    const booking = serialiseBooking(rows[0]);
-    const operators = await loadOperatorsIfPresent(req.user.customerId);
-    const index = buildOperatorIndex(operators);
-    const { operator } = identify(booking, index);
-
-    res.json({
-      booking: {
-        ...booking,
-        operatorId: operator?.id ?? null,
-        operatorName: operator?.name ?? null,
-        payment: paymentState(booking, operator, { today: todayInClubZone() }),
-      },
-    });
+    res.json({ booking: await withAccount(serialiseBooking(rows[0]), req.user.customerId) });
   } catch (err) {
     next(err);
   }

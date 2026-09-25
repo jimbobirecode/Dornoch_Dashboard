@@ -434,6 +434,37 @@ The exports carry the same columns — operator, payment status, amount paid,
 outstanding, due date, days overdue and invoice number — flattened onto the row,
 because that spreadsheet is what goes to the bookkeeper.
 
+### Card payment links (Stripe)
+
+The payment panel can email the guest a Stripe payment link. Enter the amount
+(it starts at whatever is still owed) and press **Email payment link**:
+
+1. The dashboard creates a single-use Stripe Payment Link for that amount,
+   carrying the booking id and club as metadata.
+2. SendGrid emails it to the guest — from `SENDGRID_TEMPLATE_PAYMENT_LINK` if
+   set, otherwise a plain built-in email.
+3. The booking's payment status becomes **Pending**.
+4. When the guest pays, Stripe calls `POST /api/stripe/webhook`. The payment
+   is added to *amount paid* and the status becomes **Paid**, or
+   **Deposit paid** if it covers only part of the total.
+
+Only Stripe marks a booking paid; the dashboard never assumes it. Resending
+switches the previous link off, so a guest cannot pay both. A Payment Link is
+used rather than a Checkout Session because a session expires within a day and
+an emailed link may not be opened for a week.
+
+The webhook checks Stripe's signature against `STRIPE_WEBHOOK_SECRET` and
+refuses anything unsigned, altered or more than five minutes old. Stripe
+retries a webhook until it is acknowledged, so each payment is recorded once
+however many times it is delivered. A bank-debit payment completes unpaid and
+is only counted when `checkout.session.async_payment_succeeded` arrives.
+
+Setup: run `migration_add_stripe_payment_links.sql`, set `STRIPE_SECRET_KEY`
+and `STRIPE_WEBHOOK_SECRET` (see `.env.example`), and in Stripe → Developers →
+Webhooks add `https://<dashboard>/api/stripe/webhook` for the two events above.
+Until all of that is in place the drawer says what is missing instead of
+offering the button.
+
 ## Branding
 
 `web/src/lib/brand.js` plus the token block at the top of `web/src/theme.css`

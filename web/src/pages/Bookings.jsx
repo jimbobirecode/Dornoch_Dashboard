@@ -215,6 +215,11 @@ export default function Bookings() {
               replaceBooking(updated);
             })
           }
+          onSendPaymentLink={async (booking, amount) => {
+            const { booking: updated, message } = await api.sendPaymentLink(booking.bookingId, amount);
+            replaceBooking(updated);
+            return message;
+          }}
           onAssignOperator={(booking, operatorId) =>
             mutate(async () => {
               await api.assignOperator([booking.bookingId], operatorId);

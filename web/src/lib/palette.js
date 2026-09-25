@@ -59,6 +59,7 @@ export const STATUS_COLORS = {
  */
 export const PAYMENT_COLORS = {
   Unpaid: INK_MUTED,
+  Pending: PIPELINE_RAMP[0],
   'Deposit paid': PIPELINE_RAMP[1],
   Paid: PIPELINE_RAMP[3],
   Refunded: '#93A9B8',
