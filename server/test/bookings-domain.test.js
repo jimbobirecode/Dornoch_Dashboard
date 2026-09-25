@@ -71,7 +71,9 @@ test('status vocabulary', () => {
   assert.equal(normaliseStatus('booked'), 'Booked');
   assert.equal(normaliseStatus('Pending'), 'Inquiry');
   assert.ok(ALLOWED_STATUSES.includes('Pending'), 'old rows still carry it');
-  assert.deepEqual(PIPELINE_STAGES, ['Inquiry', 'Requested', 'Confirmed', 'Booked']);
+  assert.equal(normaliseStatus('Confirmed'), 'Booked', 'the retired stage reads as Booked');
+  assert.ok(ALLOWED_STATUSES.includes('Confirmed'), 'old rows still carry it');
+  assert.deepEqual(PIPELINE_STAGES, ['Inquiry', 'Requested', 'Booked']);
 });
 
 test('audit placeholders line up with the caller’s parameters', () => {

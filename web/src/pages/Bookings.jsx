@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { api, exportUrl } from '../lib/api.js';
 import { useBookings } from '../lib/useBookings.js';
 import { DEFAULT_PRESET, resolvePreset, withinRange } from '../lib/dateRanges.js';
-import { DEFAULT_STATUS_FILTER, PIPELINE_STAGES, normaliseStatus, statusColor } from '../lib/status.js';
+import { ALL_STATUSES, DEFAULT_STATUS_FILTER, normaliseStatus, statusColor } from '../lib/status.js';
 import { formatCurrency, formatNumber } from '../lib/format.js';
 import FilterBar from '../components/FilterBar.jsx';
 import BookingsTable from '../components/BookingsTable.jsx';
@@ -50,9 +50,9 @@ export default function Bookings() {
   const selected = filtered.find((booking) => booking.bookingId === selectedId) ?? null;
 
   // Tiles count the date-filtered set so the numbers stay stable while a
-  // status tile is toggled on and off.
+  // status tile is toggled on and off. They are the only status filter.
   const stageCounts = useMemo(() => {
-    const counts = Object.fromEntries(PIPELINE_STAGES.map((stage) => [stage, 0]));
+    const counts = Object.fromEntries(ALL_STATUSES.map((stage) => [stage, 0]));
     for (const booking of dateFiltered) {
       const stage = normaliseStatus(booking.status);
       if (stage in counts) counts[stage] += 1;
@@ -63,7 +63,7 @@ export default function Bookings() {
   const pipelineValue = useMemo(
     () =>
       dateFiltered
-        .filter((booking) => ['Confirmed', 'Booked'].includes(booking.status))
+        .filter((booking) => booking.status === 'Booked')
         .reduce((total, booking) => total + booking.total, 0),
     [dateFiltered],
   );
@@ -142,8 +142,9 @@ export default function Bookings() {
       {error && <div className="banner error">{error}</div>}
       {notice && <div className={`banner ${notice.kind}`}>{notice.text}</div>}
 
-      <div className="kpi-row">
-        {PIPELINE_STAGES.map((stage) => (
+      {/* Six tiles: narrower than the default so they share one row. */}
+      <div className="kpi-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
+        {ALL_STATUSES.map((stage) => (
           <KpiTile
             key={stage}
             label={stage}
@@ -155,9 +156,9 @@ export default function Bookings() {
           />
         ))}
         <KpiTile
-          label="Confirmed value"
+          label="Booked value"
           value={formatCurrency(pipelineValue)}
-          sub="Confirmed + booked"
+          sub="Booked only"
           accent="var(--brand-gold)"
         />
       </div>
@@ -169,8 +170,6 @@ export default function Bookings() {
         onPreset={setPreset}
         custom={custom}
         onCustom={setCustom}
-        statuses={statuses}
-        onStatuses={setStatuses}
         onReset={() => {
           setSearch('');
           setPreset(DEFAULT_PRESET);

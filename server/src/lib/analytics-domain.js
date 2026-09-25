@@ -17,7 +17,7 @@ import {
 } from './operators-domain.js';
 
 /** Revenue is only counted once a booking is actually committed. */
-const COMMITTED = new Set(['Confirmed', 'Booked']);
+const COMMITTED = new Set(['Booked']);
 
 /**
  * A booking that came through the enquiry pipeline.

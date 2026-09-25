@@ -4,6 +4,7 @@ import { query } from '../db.js';
 import { requireAuth } from '../auth.js';
 import {
   ALLOWED_STATUSES,
+  normaliseStatus,
   extractTeeTimeFromNote,
   serialiseBooking,
 } from '../lib/bookings-domain.js';
@@ -224,10 +225,12 @@ router.patch('/:bookingId/payment', async (req, res, next) => {
 });
 
 router.patch('/:bookingId/status', async (req, res, next) => {
-  const { status } = req.body ?? {};
-  if (!ALLOWED_STATUSES.includes(status)) {
-    return res.status(400).json({ error: `Unknown status: ${status}` });
+  const requested = req.body?.status;
+  if (!ALLOWED_STATUSES.includes(requested)) {
+    return res.status(400).json({ error: `Unknown status: ${requested}` });
   }
+  // A retired spelling is stored as the status it stands for.
+  const status = normaliseStatus(requested);
 
   try {
     const booking = await updateBookingField({

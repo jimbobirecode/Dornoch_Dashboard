@@ -52,7 +52,7 @@ function booking(overrides = {}) {
     teeTime: '10:04 AM',
     players: 4,
     total: 1000,
-    status: 'Confirmed',
+    status: 'Booked',
     tourOperatorId: null,
     paymentStatus: 'Unpaid',
     amountPaid: 0,
@@ -110,7 +110,7 @@ test('reminder windows default to 21 days of tee sheet and 7 days of money', () 
 test('a status reminder lists what is unconfirmed inside the window, and nothing else', () => {
   const bookings = [
     booking({ bookingId: 'OPEN', status: 'Requested', date: '2026-04-10' }),
-    booking({ bookingId: 'CONF', status: 'Confirmed', date: '2026-04-12' }),
+    booking({ bookingId: 'ASKD', status: 'Inquiry', date: '2026-04-12' }),
     booking({ bookingId: 'DONE', status: 'Booked', date: '2026-04-11' }),
     booking({ bookingId: 'FAR', status: 'Requested', date: '2026-09-01' }),
     booking({ bookingId: 'PAST', status: 'Requested', date: '2026-03-01' }),
@@ -119,9 +119,9 @@ test('a status reminder lists what is unconfirmed inside the window, and nothing
 
   const [reminder] = selectReminders([operator()], bookings, opts(STATUS));
 
-  assert.deepEqual(reminder.bookings.map((line) => line.bookingId), ['OPEN', 'CONF']);
+  assert.deepEqual(reminder.bookings.map((line) => line.bookingId), ['OPEN', 'ASKD']);
   assert.equal(reminder.bookings[0].reason, 'Awaiting confirmation');
-  assert.equal(reminder.bookings[1].reason, 'Awaiting final booking');
+  assert.equal(reminder.bookings[1].reason, 'Awaiting confirmation');
   assert.equal(reminder.bookings[0].daysToPlay, 9);
 });
 

@@ -96,7 +96,7 @@ export default function Waitlist() {
           label="Of every entry"
           value={`${conversion.conversionRateOfAll}%`}
           sub="Counting the ones still open"
-          accent={STATUS_COLORS.Confirmed}
+          accent={PIPELINE_RAMP[2]}
         />
         <KpiTile
           label="Recovered"

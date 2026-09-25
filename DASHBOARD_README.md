@@ -114,8 +114,9 @@ without a database or an API key.
 
 ## What is ported from the Streamlit dashboard
 
-Bookings list and filtering, the `Inquiry → Requested → Confirmed → Booked`
-pipeline, status/note/tee-time edits, delete, tee-time extraction from email
+Bookings list and filtering, the `Inquiry → Requested → Booked` pipeline
+(the old `Confirmed` stage is retired: rows still carrying it read as
+`Booked`, and `migration_retire_confirmed_status.sql` rewrites them), status/note/tee-time edits, delete, tee-time extraction from email
 bodies, CSV and Excel export, Reports & Analytics, and the customer-journey
 guest emails.
 
@@ -275,7 +276,7 @@ sent from the dashboard rather than a cron job:
 | Pre-arrival welcome | `PRE_ARRIVAL_DAYS` (default 3) before the play date | `SENDGRID_TEMPLATE_PRE_ARRIVAL` |
 | Post-play thank you | `POST_PLAY_DAYS` (default 2) after the play date | `SENDGRID_TEMPLATE_POST_PLAY` |
 
-Only `Confirmed` and `Booked` bookings are ever listed. The page opens on the
+Only `Booked` bookings are ever listed. The page opens on the
 guests due today and can widen to all upcoming play (welcomes) or the last 30
 days (thank yous). Rows are ticked, previewed with a dry run that renders the
 same template data without contacting SendGrid, then sent; a guest who has
@@ -507,7 +508,7 @@ record lodging detail or has not run the journey-email migration is told which
 one rather than shown a grid of zeroes.
 
 Three things the numbers deliberately do **not** do. Revenue counts only
-`Confirmed` and `Booked`, so an open enquiry never inflates it. Course mix
+`Booked`, so an open enquiry never inflates it. Course mix
 counts a booking naming both courses toward each, so those rows do not sum to
 the total — the card says so on its face. And on the request grid, a slot's
 "asked for" count and its "on the sheet" count are separate tallies rather than

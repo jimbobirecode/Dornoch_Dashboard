@@ -7,7 +7,7 @@ import { BRAND } from './brand.js';
 
 
 /** The funnel, in order. A booking only ever moves forward through these. */
-export const PIPELINE_STAGES = ['Inquiry', 'Requested', 'Confirmed', 'Booked'];
+export const PIPELINE_STAGES = ['Inquiry', 'Requested', 'Booked'];
 
 /** Ends the pipeline early; neither counts toward conversion. */
 export const TERMINAL_STATUSES = ['Rejected', 'Cancelled'];
@@ -15,16 +15,19 @@ export const TERMINAL_STATUSES = ['Rejected', 'Cancelled'];
 export const ALL_STATUSES = [...PIPELINE_STAGES, ...TERMINAL_STATUSES];
 
 /**
- * What a PATCH may set, and what `npm run check` treats as a status it
- * understands. 'Pending' is the Streamlit-era spelling of 'Inquiry' and still
- * exists in older rows, so it is recognised but never produced.
+ * Retired spellings still found in older rows. 'Pending' is the Streamlit-era
+ * 'Inquiry'; 'Confirmed' was a stage between Requested and Booked that has
+ * been folded into Booked. Both are read as their replacement, never produced.
  */
-export const ALLOWED_STATUSES = [...ALL_STATUSES, 'Pending'];
+export const LEGACY_STATUSES = { pending: 'Inquiry', confirmed: 'Booked' };
+
+/** What a PATCH may set, and what `npm run check` treats as a status it understands. */
+export const ALLOWED_STATUSES = [...ALL_STATUSES, 'Pending', 'Confirmed'];
 
 export function normaliseStatus(status) {
   if (!status) return PIPELINE_STAGES[0];
   const text = String(status).trim();
-  if (text.toLowerCase() === 'pending') return 'Inquiry';
+  if (LEGACY_STATUSES[text.toLowerCase()]) return LEGACY_STATUSES[text.toLowerCase()];
   return ALL_STATUSES.find((known) => known.toLowerCase() === text.toLowerCase()) ?? text;
 }
 

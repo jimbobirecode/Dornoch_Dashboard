@@ -119,8 +119,8 @@ export function reminderReady(config, campaignId) {
  * Which of an operator's bookings belong in this campaign's email today.
  *
  * `booking_status` takes everything of theirs playing inside the window that
- * has not reached `Booked` — the enquiry nobody answered and the confirmation
- * nobody finalised are the same problem to an operator holding a tee sheet.
+ * has not reached `Booked` — an enquiry nobody has answered is a problem to an
+ * operator holding a tee sheet.
  *
  * `payment_due` takes the committed bookings with money outstanding whose next
  * milestone falls inside the window, plus everything already late however old.
@@ -129,12 +129,12 @@ export function bookingMatchesCampaign(booking, operator, { campaign, days, toda
   if (campaign.id === 'booking_status') {
     if (!booking.date || booking.date < today) return null;
     if (booking.status === 'Booked') return null;
-    if (!['Inquiry', 'Requested', 'Confirmed'].includes(booking.status)) return null;
+    if (!['Inquiry', 'Requested'].includes(booking.status)) return null;
     const horizon = shift(today, days);
     if (booking.date > horizon) return null;
 
     return {
-      reason: booking.status === 'Confirmed' ? 'Awaiting final booking' : 'Awaiting confirmation',
+      reason: 'Awaiting confirmation',
       daysToPlay: dayGap(today, booking.date),
     };
   }

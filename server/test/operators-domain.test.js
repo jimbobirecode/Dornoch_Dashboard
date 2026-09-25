@@ -52,7 +52,7 @@ function booking(overrides = {}) {
     teeTime: '10:04 AM',
     players: 4,
     total: 1000,
-    status: 'Confirmed',
+    status: 'Booked',
     tourOperatorId: null,
     paymentStatus: 'Unpaid',
     amountPaid: 0,
@@ -267,7 +267,7 @@ test('money is only chased once the club has committed to the tee time', () => {
       status,
     );
   }
-  for (const status of ['Confirmed', 'Booked']) {
+  for (const status of ['Booked']) {
     assert.equal(
       paymentState(booking({ status }), operator(), { today: TODAY }).chaseable,
       true,

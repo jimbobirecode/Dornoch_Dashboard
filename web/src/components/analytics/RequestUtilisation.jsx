@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { formatCurrency, formatNumber } from '../../lib/format.js';
-import { STATUS_COLORS } from '../../lib/palette.js';
+import { PIPELINE_RAMP, STATUS_COLORS } from '../../lib/palette.js';
 import { ChartCard, Heatmap, BarList, TableView } from '../charts/index.js';
 import { Segmented } from './Segmented.jsx';
 
@@ -133,7 +133,7 @@ export default function RequestUtilisation({ grid }) {
               label: `${shift.day}: ${shift.from} → ${shift.to}`,
             }))}
             category="count"
-            colorFor={() => STATUS_COLORS.Confirmed}
+            colorFor={() => PIPELINE_RAMP[2]}
             valueFormatter={formatNumber}
             emptyMessage="No booking was moved off the band it asked for."
           />

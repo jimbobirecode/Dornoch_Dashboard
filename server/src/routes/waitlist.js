@@ -169,7 +169,7 @@ router.post('/:waitlistId/convert', async (req, res, next) => {
       `INSERT INTO public.bookings
          (booking_id, guest_email, guest_name, date, tee_time, players, total,
           status, note, club, golf_courses, timestamp)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'Confirmed', $8, $9, $10, NOW())
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'Booked', $8, $9, $10, NOW())
        RETURNING *`,
       [
         bookingId,

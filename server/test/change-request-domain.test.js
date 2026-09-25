@@ -81,7 +81,7 @@ test('a finished booking offers nothing, and says why', () => {
   assert.match(played.reason, /already been played/);
 
   assert.equal(describeOptions(null, policy, '2026-05-01').canCancel, false);
-  assert.deepEqual(MANAGEABLE_STATUSES, ['Inquiry', 'Requested', 'Confirmed', 'Booked']);
+  assert.deepEqual(MANAGEABLE_STATUSES, ['Inquiry', 'Requested', 'Booked']);
 });
 
 test('days until play counts from today, and goes negative afterwards', () => {

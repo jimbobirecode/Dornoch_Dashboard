@@ -15,7 +15,7 @@
 import { PIPELINE_STAGES, TERMINAL_STATUSES } from './bookings-domain.js';
 
 /** Revenue and exposure only ever count bookings the club has committed to. */
-export const COMMITTED_STATUSES = ['Confirmed', 'Booked'];
+export const COMMITTED_STATUSES = ['Booked'];
 
 /** Statuses that still owe the operator an answer, so still owe a chase. */
 export const UNCOMMITTED_STATUSES = ['Inquiry', 'Requested'];

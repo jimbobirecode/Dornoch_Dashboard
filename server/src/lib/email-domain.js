@@ -17,7 +17,7 @@ import { BRAND } from './brand.js';
 import { surveyTemplateData } from './vero-domain.js';
 
 /** Bookings only enter a campaign once the club has committed to them. */
-export const SENDABLE_STATUSES = ['Confirmed', 'Booked'];
+export const SENDABLE_STATUSES = ['Booked'];
 
 /** How far back `showAll` looks for a post-play send. */
 const POST_PLAY_LOOKBACK_DAYS = 30;

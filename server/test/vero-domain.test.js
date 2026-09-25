@@ -26,7 +26,7 @@ function booking(overrides = {}) {
     players: 4,
     total: 620,
     golfCourses: 'Championship',
-    status: 'Confirmed',
+    status: 'Booked',
     ...overrides,
   };
 }
