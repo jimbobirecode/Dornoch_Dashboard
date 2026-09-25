@@ -41,6 +41,7 @@ const CLUB_NAMES = {
   royal_dornoch: BRAND.fullName,
   royaldornoch: BRAND.fullName,
   dornoch: BRAND.fullName,
+  demo_club: BRAND.fullName,
   streamsong: 'Streamsong Resort',
 };
 
