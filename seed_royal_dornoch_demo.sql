@@ -184,9 +184,9 @@ INSERT INTO bookings (
  jsonb_build_array(jsonb_build_object('date', to_char(CURRENT_DATE + 30, 'YYYY-MM-DD'), 'time', '9:00 AM',
    'course_name', 'Championship Course', 'players', 12, 'price', 360.00))),
 
--- Confirmed: tee time held, payment details sent (customer-journey welcome email due in 3 days)
+-- Booked: tee time held, payment details sent (customer-journey welcome email due in 3 days)
 ('RDG-DEMO-0005', 'mike.obrien@example.com', 'Mike O''Brien',
- CURRENT_DATE + 3, '8:20 AM', 4, 1440.00, 'Confirmed',
+ CURRENT_DATE + 3, '8:20 AM', 4, 1440.00, 'Booked',
  'Confirmed by golf office. Course: Championship Course. Time: 8:20 AM. Payment link sent.',
  'royal_dornoch', NOW() - INTERVAL '9 days', NOW() - INTERVAL '9 days', NOW() - INTERVAL '8 days', NOW() - INTERVAL '7 days', 'dornoch_demo',
  TRUE, CURRENT_DATE + 2, CURRENT_DATE + 5, 3, 2, 'double', 'Links House', 2370.00,
@@ -195,7 +195,7 @@ INSERT INTO bookings (
    'course_name', 'Championship Course', 'players', 4, 'price', 360.00))),
 
 ('RDG-DEMO-0006', 'hans.mueller@example.de', 'Hans Mueller',
- CURRENT_DATE + 8, '2:30 PM', 3, 1080.00, 'Confirmed',
+ CURRENT_DATE + 8, '2:30 PM', 3, 1080.00, 'Booked',
  'Confirmed. Course: Championship Course. Time: 2:30 PM. Handicap certificates received.',
  'royal_dornoch', NOW() - INTERVAL '12 days', NOW() - INTERVAL '12 days', NOW() - INTERVAL '11 days', NOW() - INTERVAL '10 days', 'dornoch_demo',
  FALSE, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -225,7 +225,7 @@ INSERT INTO bookings (
 
 -- Played recently (customer-journey thank-you email due) and history for the reports page
 ('RDG-DEMO-0009', 'david.brown@example.com', 'David Brown',
- CURRENT_DATE - 2, '9:40 AM', 4, 1440.00, 'Confirmed',
+ CURRENT_DATE - 2, '9:40 AM', 4, 1440.00, 'Booked',
  'Played. Course: Championship Course. Time: 9:40 AM.',
  'royal_dornoch', NOW() - INTERVAL '40 days', NOW() - INTERVAL '40 days', NOW() - INTERVAL '39 days', NOW() - INTERVAL '35 days', 'dornoch_demo',
  FALSE, NULL, NULL, NULL, NULL, NULL, NULL, NULL,

@@ -14,6 +14,7 @@ export default function BookingDrawer({
   onNoteSave,
   onTeeTimeSave,
   onPaymentSave,
+  onSendPaymentLink,
   onAssignOperator,
   onDelete,
 }) {
@@ -83,6 +84,7 @@ export default function BookingDrawer({
             operators={operators}
             onSave={onPaymentSave}
             onAssign={onAssignOperator}
+            onSendLink={onSendPaymentLink}
           />
         )}
 

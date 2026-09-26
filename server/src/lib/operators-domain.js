@@ -15,7 +15,7 @@
 import { PIPELINE_STAGES, TERMINAL_STATUSES } from './bookings-domain.js';
 
 /** Revenue and exposure only ever count bookings the club has committed to. */
-export const COMMITTED_STATUSES = ['Confirmed', 'Booked'];
+export const COMMITTED_STATUSES = ['Booked'];
 
 /** Statuses that still owe the operator an answer, so still owe a chase. */
 export const UNCOMMITTED_STATUSES = ['Inquiry', 'Requested'];
@@ -25,7 +25,8 @@ export const UNCOMMITTED_STATUSES = ['Inquiry', 'Requested'];
  * it is derived from the due date every time it is read, because a stored
  * "Overdue" is wrong the morning after it is written.
  */
-export const PAYMENT_STATUSES = ['Unpaid', 'Deposit paid', 'Paid', 'Refunded', 'Written off'];
+/** 'Pending': a Stripe payment link has been emailed and not yet paid. */
+export const PAYMENT_STATUSES = ['Unpaid', 'Pending', 'Deposit paid', 'Paid', 'Refunded', 'Written off'];
 
 /** Neither owes money nor counts toward exposure. */
 export const CLOSED_PAYMENT_STATUSES = ['Refunded', 'Written off'];

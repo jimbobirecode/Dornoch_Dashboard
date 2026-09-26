@@ -40,7 +40,6 @@ export const PIPELINE_RAMP = ['#B8862B', '#C9A227', '#DEC163', '#F0E0A6'];
 export const STATUS_COLORS = {
   Inquiry: PIPELINE_RAMP[0],
   Requested: PIPELINE_RAMP[1],
-  Confirmed: PIPELINE_RAMP[2],
   Booked: PIPELINE_RAMP[3],
   Rejected: '#DB4F7D',
   Cancelled: '#93A9B8',
@@ -60,6 +59,7 @@ export const STATUS_COLORS = {
  */
 export const PAYMENT_COLORS = {
   Unpaid: INK_MUTED,
+  Pending: PIPELINE_RAMP[0],
   'Deposit paid': PIPELINE_RAMP[1],
   Paid: PIPELINE_RAMP[3],
   Refunded: '#93A9B8',

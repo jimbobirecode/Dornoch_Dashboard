@@ -31,7 +31,7 @@ function booking(overrides = {}) {
     teeTime: '10:04 AM',
     players: 4,
     total: 1292,
-    status: 'Confirmed',
+    status: 'Booked',
     golfCourses: '',
     hotelRequired: false,
     hotelCheckin: null,
@@ -91,7 +91,7 @@ test('the due window is the single play date the campaign targets', () => {
 
 test('only committed bookings are ever emailed', () => {
   const bookings = [
-    booking({ bookingId: 'RD-C', status: 'Confirmed' }),
+    booking({ bookingId: 'RD-C', status: 'Booked' }),
     booking({ bookingId: 'RD-B', status: 'Booked' }),
     booking({ bookingId: 'RD-I', status: 'Inquiry' }),
     booking({ bookingId: 'RD-X', status: 'Cancelled' }),

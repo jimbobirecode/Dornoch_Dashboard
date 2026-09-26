@@ -15,7 +15,7 @@ export default function MoneySection({ payments, trade }) {
     <>
       <Section
         title="Money and channel"
-        blurb="Confirmed and booked rounds only — what has been collected, what is late, and where the book comes from"
+        blurb="Booked rounds only — what has been collected, what is late, and where the book comes from"
       />
 
       <div className="chart-grid">

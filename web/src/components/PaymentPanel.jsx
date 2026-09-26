@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import PaymentPill from './PaymentPill.jsx';
+import PaymentLinkPanel from './PaymentLinkPanel.jsx';
 import { formatCurrency, formatDate } from '../lib/format.js';
 import { OVERDUE } from '../lib/palette.js';
 import { PAYMENT_STATUSES, describeDue, describeStage, statusDisagrees } from '../lib/payments.js';
@@ -12,7 +13,7 @@ import { PAYMENT_STATUSES, describeDue, describeStage, statusDisagrees } from '.
  * agreed differently — clearing a field hands it back to the terms rather than
  * leaving a blank.
  */
-export default function PaymentPanel({ booking, operators, onSave, onAssign }) {
+export default function PaymentPanel({ booking, operators, onSave, onAssign, onSendLink }) {
   const payment = booking.payment;
   const [form, setForm] = useState(() => toForm(booking));
   const [busy, setBusy] = useState(false);
@@ -82,6 +83,8 @@ export default function PaymentPanel({ booking, operators, onSave, onAssign }) {
           record of what was agreed is not overwritten automatically.
         </div>
       )}
+
+      {onSendLink && <PaymentLinkPanel booking={booking} onSend={onSendLink} />}
 
       {onAssign && (
         <div className="stack" style={{ gap: '0.25rem' }}>

@@ -8,7 +8,7 @@
 import { INK_MUTED, STATUS_COLORS } from './palette.js';
 
 export { STATUS_COLORS };
-export const PIPELINE_STAGES = ['Inquiry', 'Requested', 'Confirmed', 'Booked'];
+export const PIPELINE_STAGES = ['Inquiry', 'Requested', 'Booked'];
 
 export const TERMINAL_STATUSES = ['Rejected', 'Cancelled'];
 
@@ -19,11 +19,16 @@ export const DEFAULT_STATUS_FILTER = [...ALL_STATUSES];
 
 const UNKNOWN_COLOR = INK_MUTED;
 
-/** 'Pending' is the Streamlit-era spelling of 'Inquiry' and still in old rows. */
+/**
+ * Retired spellings still found in older rows: 'Pending' is the Streamlit-era
+ * 'Inquiry', and 'Confirmed' was a stage that has been folded into 'Booked'.
+ */
+const LEGACY_STATUSES = { pending: 'Inquiry', confirmed: 'Booked' };
+
 export function normaliseStatus(status) {
   if (!status) return PIPELINE_STAGES[0];
   const text = String(status).trim();
-  if (text.toLowerCase() === 'pending') return 'Inquiry';
+  if (LEGACY_STATUSES[text.toLowerCase()]) return LEGACY_STATUSES[text.toLowerCase()];
   return ALL_STATUSES.find((known) => known.toLowerCase() === text.toLowerCase()) ?? text;
 }
 

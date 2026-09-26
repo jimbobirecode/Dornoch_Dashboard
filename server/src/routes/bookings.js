@@ -4,6 +4,7 @@ import { query } from '../db.js';
 import { requireAuth } from '../auth.js';
 import {
   ALLOWED_STATUSES,
+  normaliseStatus,
   extractTeeTimeFromNote,
   serialiseBooking,
 } from '../lib/bookings-domain.js';
@@ -75,6 +76,25 @@ async function loadOperatorsIfPresent(club) {
     [club],
   );
   return rows.map(serialiseOperator);
+}
+
+/**
+ * One booking with its account and payment state, as the list serves it.
+ *
+ * Re-identified rather than read off tour_operator_id: most trade bookings
+ * are matched on their sending domain and were never assigned an id, and a
+ * row that came back from a save without its account would show the drawer
+ * the wrong terms — and so the wrong due date.
+ */
+export async function withAccount(booking, club) {
+  const operators = await loadOperatorsIfPresent(club);
+  const { operator } = identify(booking, buildOperatorIndex(operators));
+  return {
+    ...booking,
+    operatorId: operator?.id ?? null,
+    operatorName: operator?.name ?? null,
+    payment: paymentState(booking, operator, { today: todayInClubZone() }),
+  };
 }
 
 /**
@@ -201,33 +221,19 @@ router.patch('/:bookingId/payment', async (req, res, next) => {
 
     if (!rows[0]) return res.status(404).json({ error: 'Booking not found' });
 
-    // Re-identified rather than read off tour_operator_id: most trade bookings
-    // are matched on their sending domain and were never assigned an id, and a
-    // row that came back from a save without its account would show the drawer
-    // the wrong terms — and so the wrong due date.
-    const booking = serialiseBooking(rows[0]);
-    const operators = await loadOperatorsIfPresent(req.user.customerId);
-    const index = buildOperatorIndex(operators);
-    const { operator } = identify(booking, index);
-
-    res.json({
-      booking: {
-        ...booking,
-        operatorId: operator?.id ?? null,
-        operatorName: operator?.name ?? null,
-        payment: paymentState(booking, operator, { today: todayInClubZone() }),
-      },
-    });
+    res.json({ booking: await withAccount(serialiseBooking(rows[0]), req.user.customerId) });
   } catch (err) {
     next(err);
   }
 });
 
 router.patch('/:bookingId/status', async (req, res, next) => {
-  const { status } = req.body ?? {};
-  if (!ALLOWED_STATUSES.includes(status)) {
-    return res.status(400).json({ error: `Unknown status: ${status}` });
+  const requested = req.body?.status;
+  if (!ALLOWED_STATUSES.includes(requested)) {
+    return res.status(400).json({ error: `Unknown status: ${requested}` });
   }
+  // A retired spelling is stored as the status it stands for.
+  const status = normaliseStatus(requested);
 
   try {
     const booking = await updateBookingField({

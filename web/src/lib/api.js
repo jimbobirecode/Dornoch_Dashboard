@@ -118,6 +118,9 @@ export const api = {
 
   setPayment: (bookingId, patch) =>
     request(`/bookings/${encodeURIComponent(bookingId)}/payment`, { method: 'PATCH', body: patch }),
+  paymentConfig: () => request('/payments/config'),
+  sendPaymentLink: (bookingId, amount) =>
+    request(`/payments/bookings/${encodeURIComponent(bookingId)}/link`, { method: 'POST', body: { amount } }),
 
   operators: () => request('/operators'),
   operator: (id) => request(`/operators/${id}`),

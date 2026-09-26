@@ -64,6 +64,15 @@ export const OPTIONAL_COLUMNS = [
   'source',
   'import_batch',
   'imported_at',
+
+  // migration_add_stripe_payment_links.sql
+  'stripe_payment_link_id',
+  'stripe_payment_link_url',
+  'payment_link_amount',
+  'payment_link_sent_at',
+  'payment_link_sent_by',
+  'stripe_checkout_session_id',
+  'stripe_paid_at',
 ];
 
 /** Every column of `tour_operators`; the table itself may not exist. */

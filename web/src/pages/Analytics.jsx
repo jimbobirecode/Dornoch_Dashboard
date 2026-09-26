@@ -395,7 +395,7 @@ function KpiRow({ totals }) {
       <KpiTile
         label="Committed revenue"
         value={formatCurrency(totals.revenue)}
-        sub="Confirmed and booked only"
+        sub="Booked only"
         delta={delta.revenue}
         accent={STATUS_COLORS.Booked}
       />
@@ -403,7 +403,7 @@ function KpiRow({ totals }) {
         label="Average booking value"
         value={formatCurrency(totals.averageValue)}
         delta={delta.averageValue}
-        accent={STATUS_COLORS.Confirmed}
+        accent={PIPELINE_RAMP[2]}
       />
       <KpiTile
         label="Conversion"

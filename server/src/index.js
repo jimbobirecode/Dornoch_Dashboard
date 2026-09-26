@@ -16,11 +16,17 @@ import userRoutes from './routes/users.js';
 import waitlistRoutes from './routes/waitlist.js';
 import importRoutes from './routes/imports.js';
 import changeRoutes from './routes/changes.js';
+import paymentRoutes from './routes/payments.js';
+import stripeWebhookRoutes from './routes/stripe-webhook.js';
 import { pool } from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = Number(process.env.PORT ?? 3001);
+
+// Stripe signs the raw request body, so its webhook is mounted before the JSON
+// parser can consume it.
+app.use('/api/stripe/webhook', stripeWebhookRoutes);
 
 // A tee sheet upload arrives base64-encoded in the body, which is about a
 // third larger than the file; 12mb carries the importer's 8MB ceiling.
@@ -52,6 +58,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/waitlist', waitlistRoutes);
 app.use('/api/imports', importRoutes);
 app.use('/api/changes', changeRoutes);
+app.use('/api/payments', paymentRoutes);
 
 const distDir = path.resolve(__dirname, '../../web/dist');
 if (fs.existsSync(distDir)) {

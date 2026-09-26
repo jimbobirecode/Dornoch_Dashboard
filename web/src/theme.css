@@ -51,7 +51,6 @@
   /* Pipeline: gorse gold ordinal ramp, brightening toward completion */
   --status-inquiry: #B8862B;
   --status-requested: #C9A227;
-  --status-confirmed: #DEC163;
   --status-booked: #F0E0A6;
   /* Terminal states, outside the ramp */
   --status-rejected: #DB4F7D;

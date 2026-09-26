@@ -29,7 +29,7 @@ import {
 /** Four bookings spanning both courses, both months and a cancellation. */
 const ROWS = [
   { status: 'Booked', total: 400, players: 4, date: '2026-03-18', teeTime: '10:04 AM', timestamp: '2026-02-01T09:00:00Z', golfCourses: 'Championship Course', hotelRequired: true },
-  { status: 'Confirmed', total: 200, players: 2, date: '2026-03-20', teeTime: '08:30', timestamp: '2026-03-18T09:00:00Z', golfCourses: 'Struie Course', hotelRequired: false },
+  { status: 'Booked', total: 200, players: 2, date: '2026-03-20', teeTime: '08:30', timestamp: '2026-03-18T09:00:00Z', golfCourses: 'Struie Course', hotelRequired: false },
   { status: 'Inquiry', total: 150, players: 3, date: '2026-04-02', teeTime: 'Not Specified', timestamp: '2026-03-01T09:00:00Z', golfCourses: '', hotelRequired: false },
   { status: 'Cancelled', total: 999, players: 2, date: '2026-04-05', teeTime: '14:15', timestamp: '2026-01-01T09:00:00Z', golfCourses: 'Championship Course and Struie Course', hotelRequired: true },
 ];
@@ -237,7 +237,7 @@ test('buildAnalytics composes every section', () => {
     'courses', 'accommodation', 'requestUtilisation', 'popularTeeTimes', 'busiestDays']) {
     assert.ok(analytics[key] !== undefined, `missing ${key}`);
   }
-  assert.equal(analytics.byStatus.length, 6);
+  assert.equal(analytics.byStatus.length, 5);
   assert.ok(!analytics.popularTeeTimes.some((e) => e.key === 'Not Specified'));
 });
 
@@ -253,8 +253,8 @@ test('an empty period does not throw', () => {
 /** Two committed bookings with real payment state, one of them overdue. */
 const MONEY = [
   { status: 'Booked', total: 1200, players: 4, date: '2026-03-18', paymentStatus: 'Deposit paid', amountPaid: 300, invoiceNumber: 'INV-1', balanceDueDate: '2026-02-01' },
-  { status: 'Confirmed', total: 400, players: 2, date: '2026-03-20', paymentStatus: 'Paid', amountPaid: 400 },
-  { status: 'Confirmed', total: 500, players: 2, date: '2026-03-22', paymentStatus: 'Written off', amountPaid: 0 },
+  { status: 'Booked', total: 400, players: 2, date: '2026-03-20', paymentStatus: 'Paid', amountPaid: 400 },
+  { status: 'Booked', total: 500, players: 2, date: '2026-03-22', paymentStatus: 'Written off', amountPaid: 0 },
   { status: 'Inquiry', total: 999, players: 2, date: '2026-04-02', paymentStatus: 'Unpaid', amountPaid: 0 },
 ];
 
@@ -292,7 +292,7 @@ test('trade and direct are split by the operator a booking is matched to', () =>
   const rows = [
     { status: 'Booked', total: 1200, players: 4, tourOperatorId: 7 },
     { status: 'Inquiry', total: 800, players: 4, tourOperatorId: 7 },
-    { status: 'Confirmed', total: 400, players: 2, tourOperatorId: null },
+    { status: 'Booked', total: 400, players: 2, tourOperatorId: null },
     { status: 'Cancelled', total: 999, players: 2 },
   ];
   const trade = buildTradeMix(rows, { names: new Map([[7, 'Haversham Golf Tours']]) });
@@ -314,8 +314,8 @@ test('trade and direct are split by the operator a booking is matched to', () =>
 test('lodging reads nights, rooms and what the stay is worth', () => {
   const rows = [
     { status: 'Booked', total: 1200, players: 4, hotelRequired: true, lodgingNights: 3, lodgingRooms: 2, lodgingRoomType: 'Twin', lodgingCost: 600, resortFeeTotal: 40 },
-    { status: 'Confirmed', total: 400, players: 2, hotelRequired: true, lodgingNights: 1, lodgingRooms: 1, lodgingRoomType: 'Double', lodgingCost: 150 },
-    { status: 'Confirmed', total: 300, players: 2, hotelRequired: false },
+    { status: 'Booked', total: 400, players: 2, hotelRequired: true, lodgingNights: 1, lodgingRooms: 1, lodgingRoomType: 'Double', lodgingCost: 150 },
+    { status: 'Booked', total: 300, players: 2, hotelRequired: false },
   ];
   const stay = buildLodging(rows);
 
@@ -392,7 +392,7 @@ test('guests are counted by address, and a business address is told from a perso
 test('response time stops at the confirmation, and never runs backwards', () => {
   const times = buildResponseTimes([
     { status: 'Booked', formSubmittedAt: '2026-02-01T09:00:00Z', customerConfirmedAt: '2026-02-01T11:30:00Z' },
-    { status: 'Confirmed', timestamp: '2026-02-01T09:00:00Z', updatedAt: '2026-02-03T09:00:00Z' },
+    { status: 'Booked', timestamp: '2026-02-01T09:00:00Z', updatedAt: '2026-02-03T09:00:00Z' },
     { status: 'Inquiry', timestamp: '2026-02-01T09:00:00Z', updatedAt: '2026-02-02T09:00:00Z' },
     { status: 'Booked', formSubmittedAt: '2026-02-05T09:00:00Z', customerConfirmedAt: '2026-02-01T09:00:00Z' },
   ]);
@@ -410,7 +410,7 @@ test('email coverage does not count a future round as a missed thank you', () =>
     [
       { status: 'Booked', date: '2026-03-01', preArrivalEmailSentAt: '2026-02-26T08:00:00Z', postPlayEmailSentAt: '2026-03-03T08:00:00Z' },
       { status: 'Booked', date: '2026-03-02' },
-      { status: 'Confirmed', date: '2026-12-24' },
+      { status: 'Booked', date: '2026-12-24' },
       { status: 'Inquiry', date: '2026-03-01' },
     ],
     { today: '2026-03-16' },

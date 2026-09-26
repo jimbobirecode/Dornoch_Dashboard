@@ -22,7 +22,7 @@ export const REQUEST_KINDS = ['cancel', 'amend'];
 export const REQUEST_STATUSES = ['Pending', 'Approved', 'Declined', 'Applied'];
 
 /** Statuses a guest may still act on. A played or cancelled round is finished. */
-export const MANAGEABLE_STATUSES = ['Inquiry', 'Requested', 'Confirmed', 'Booked'];
+export const MANAGEABLE_STATUSES = ['Inquiry', 'Requested', 'Booked'];
 
 /**
  * Read the self-service policy.
